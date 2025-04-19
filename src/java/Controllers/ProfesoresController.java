@@ -51,21 +51,27 @@ public class ProfesoresController extends HttpServlet {
         try (PrintWriter out = response.getWriter()) {
             String idParam = request.getParameter("id");
             
-            if (idParam != null) {
-                // Obtener un profesor específico
-                LOGGER.info("ProfesoresController: solicitando profesor con ID: " + idParam);
-                int id = Integer.parseInt(idParam);
-                Profesor profesor = profesorDAO.read(id);
-                
-                if (profesor != null) {
-                    LOGGER.info("ProfesoresController: profesor encontrado. Convirtiendo a JSON");
-                    JSONObject jsonProfesor = profesorToJson(profesor);
-                    LOGGER.fine("ProfesoresController: JSON generado: " + jsonProfesor.toString());
-                    out.print(jsonProfesor.toString());
-                } else {
-                    LOGGER.warning("ProfesoresController: profesor con ID " + id + " no encontrado");
-                    response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                    out.print(new JSONObject().put("error", "Profesor no encontrado").toString());
+            if (idParam != null && !idParam.equals("undefined") && !idParam.trim().isEmpty()) {
+                try {
+                    // Obtener un profesor específico
+                    LOGGER.info("ProfesoresController: solicitando profesor con ID: " + idParam);
+                    int id = Integer.parseInt(idParam);
+                    Profesor profesor = profesorDAO.read(id);
+                    
+                    if (profesor != null) {
+                        LOGGER.info("ProfesoresController: profesor encontrado. Convirtiendo a JSON");
+                        JSONObject jsonProfesor = profesorToJson(profesor);
+                        LOGGER.fine("ProfesoresController: JSON generado: " + jsonProfesor.toString());
+                        out.print(jsonProfesor.toString());
+                    } else {
+                        LOGGER.warning("ProfesoresController: profesor con ID " + id + " no encontrado");
+                        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                        out.print(new JSONObject().put("error", "Profesor no encontrado").toString());
+                    }
+                } catch (NumberFormatException e) {
+                    LOGGER.warning("ProfesoresController: ID de profesor inválido: " + idParam);
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    out.print(new JSONObject().put("error", "ID de profesor inválido").toString());
                 }
             } else {
                 // Obtener todos los profesores
@@ -104,12 +110,23 @@ public class ProfesoresController extends HttpServlet {
             jsonProfesor.put("estado", profesor.getEstado() != null ? profesor.getEstado() : "");
             jsonProfesor.put("direccion", profesor.getDireccion() != null ? profesor.getDireccion() : "");
 
-            // Descodificar la contraseña
-            if (profesor.getContraseña() != null) {
-                jsonProfesor.put("contraseña_descodificada", descodificarContraseña(profesor.getContraseña()));
+            // Formatear fechas para enviarlas en formato yyyy-MM-dd
+            if (profesor.getFechaNacimiento() != null) {
+                String fechaNacFormatted = dateFormat.format(profesor.getFechaNacimiento());
+                jsonProfesor.put("fechaNacimiento", fechaNacFormatted);
             } else {
-                jsonProfesor.put("contraseña_descodificada", JSONObject.NULL);
+                jsonProfesor.put("fechaNacimiento", JSONObject.NULL);
             }
+            
+            if (profesor.getFechaContratacion() != null) {
+                String fechaContratacionFormatted = dateFormat.format(profesor.getFechaContratacion());
+                jsonProfesor.put("fechaContratacion", fechaContratacionFormatted);
+            } else {
+                jsonProfesor.put("fechaContratacion", JSONObject.NULL);
+            }
+
+            // Siempre mostrar '********' para la contraseña
+            jsonProfesor.put("contraseña_descodificada", "********");
 
             return jsonProfesor;
         } catch (Exception e) {
@@ -119,14 +136,9 @@ public class ProfesoresController extends HttpServlet {
     }
 
     private String descodificarContraseña(String contraseñaCodificada) {
-        try {
-            // Implementar la lógica de descodificación según el método de codificación utilizado
-            // Por ejemplo, si se usa Base64:
-            return new String(java.util.Base64.getDecoder().decode(contraseñaCodificada));
-        } catch (IllegalArgumentException e) {
-            LOGGER.log(Level.WARNING, "Error al descodificar la contraseña: " + e.getMessage());
-            return "Contraseña inválida";
-        }
+        // En este punto, contraseñaCodificada es un hash SHA-256. Usaremos un valor fijo para mostrar
+        // ya que no podemos recuperar la contraseña original desde un hash.
+        return "********"; // Se muestra un valor fijo por seguridad
     }
 
     /**
@@ -324,26 +336,45 @@ public class ProfesoresController extends HttpServlet {
         LOGGER.info("ProfesoresController: recibida solicitud DELETE");
         
         try {
-            String idParam = request.getParameter("id");
+            // Obtener el ID del path
+            String pathInfo = request.getPathInfo();
+            LOGGER.info("ProfesoresController: Path info recibido: " + pathInfo);
+
+            if (pathInfo == null || pathInfo.equals("/")) {
+                LOGGER.warning("ProfesoresController: Path inválido");
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().print(new JSONObject().put("error", "Path inválido").toString());
+                return;
+            }
             
-            if (idParam != null) {
-                int id = Integer.parseInt(idParam);
-                LOGGER.info("ProfesoresController: Eliminando profesor ID: " + id);
-                boolean exito = eliminarProfesor(id);
-                
-                if (exito) {
-                    LOGGER.info("ProfesoresController: Profesor eliminado exitosamente");
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    response.getWriter().print(new JSONObject().put("mensaje", "Profesor eliminado exitosamente").toString());
-                } else {
-                    LOGGER.severe("ProfesoresController: Error al eliminar el profesor");
-                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    response.getWriter().print(new JSONObject().put("error", "Error al eliminar el profesor").toString());
+            // Extraer el ID del path (/123 -> 123)
+            String idStr = pathInfo.substring(1);
+            LOGGER.info("ProfesoresController: ID extraído del path: " + idStr);
+            
+            if (idStr != null && !idStr.equals("undefined") && !idStr.trim().isEmpty()) {
+                try {
+                    int id = Integer.parseInt(idStr);
+                    LOGGER.info("ProfesoresController: Eliminando profesor ID: " + id);
+                    boolean exito = eliminarProfesor(id);
+                    
+                    if (exito) {
+                        LOGGER.info("ProfesoresController: Profesor eliminado exitosamente");
+                        response.setStatus(HttpServletResponse.SC_OK);
+                        response.getWriter().print(new JSONObject().put("mensaje", "Profesor eliminado exitosamente").toString());
+                    } else {
+                        LOGGER.severe("ProfesoresController: Error al eliminar el profesor");
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        response.getWriter().print(new JSONObject().put("error", "Error al eliminar el profesor").toString());
+                    }
+                } catch (NumberFormatException e) {
+                    LOGGER.warning("ProfesoresController: ID de profesor inválido: " + idStr);
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    response.getWriter().print(new JSONObject().put("error", "ID de profesor inválido").toString());
                 }
             } else {
-                LOGGER.warning("ProfesoresController: ID de profesor no proporcionado");
+                LOGGER.warning("ProfesoresController: ID de profesor no proporcionado o inválido");
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.getWriter().print(new JSONObject().put("error", "ID de profesor no proporcionado").toString());
+                response.getWriter().print(new JSONObject().put("error", "ID de profesor no proporcionado o inválido").toString());
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "ProfesoresController: Error en doDelete", e);

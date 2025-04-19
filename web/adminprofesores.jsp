@@ -226,8 +226,17 @@
         <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
         <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
         <script>
+            // Variable global para la tabla DataTable
+            let profesoresTable;
+
             $(document).ready(function() {
                 cargarProfesores();
+
+                // Cuando se cierra el modal, limpiar el formulario
+                $('#profesorModal').on('hidden.bs.modal', function() {
+                    $('#profesorForm').trigger('reset');
+                    $('#profesorId').val('');
+                });
             });
 
             function cargarProfesores() {
@@ -235,7 +244,16 @@
                     url: '${pageContext.request.contextPath}/ProfesoresController',
                     type: 'GET',
                     success: function(data) {
-                        const table = $('#profesoresTable').DataTable({
+                        // Destruir la tabla existente si ya está inicializada
+                        if ($.fn.DataTable.isDataTable('#profesoresTable')) {
+                            $('#profesoresTable').DataTable().destroy();
+                        }
+                        
+                        // Limpiar contenido de la tabla
+                        $('#profesoresTable tbody').empty();
+                        
+                        // Inicializar la tabla con los nuevos datos
+                        profesoresTable = $('#profesoresTable').DataTable({
                             data: data,
                             columns: [
                                 { data: 'id_profesor' },
@@ -245,16 +263,22 @@
                                 { data: 'grado_academico' },
                                 { data: 'especializacion' },
                                 { data: 'estado' },
-                                { data: 'contraseña_descodificada' }, // Mostrar contraseña descodificada
+                                { data: 'contraseña_descodificada' }, // Mostrar contraseña protegida
                                 {
                                     data: null,
                                     render: function(data, type, row) {
+                                        // Asegurarse de que row.id_profesor tenga un valor válido
+                                        const profesorId = row.id_profesor;
+                                        if (profesorId === undefined || profesorId === null) {
+                                            console.error("ID de profesor no encontrado en los datos de la fila:", row);
+                                            return ''; // No renderizar botones si el ID no es válido
+                                        }
                                         return `
                                             <div class="action-buttons">
-                                                <button class="btn btn-sm btn-info" onclick="editarProfesor(${row.id_profesor})" title="Editar profesor">
+                                                <button class="btn btn-sm btn-info" onclick="editarProfesor(${profesorId})" title="Editar profesor">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-danger" onclick="eliminarProfesor(${row.id_profesor})" title="Eliminar profesor">
+                                                <button class="btn btn-sm btn-danger" onclick="eliminarProfesor(${profesorId})" title="Eliminar profesor">
                                                     <i class="fas fa-trash-alt"></i>
                                                 </button>
                                             </div>`;
@@ -267,7 +291,7 @@
                         });
                     },
                     error: function(xhr) {
-                        alert('Error al cargar los profesores: ' + xhr.responseText);
+                        mostrarAlerta('error', 'Error al cargar los profesores: ' + xhr.responseText);
                     }
                 });
             }
@@ -275,6 +299,7 @@
             function guardarProfesor() {
                 const profesor = {
                     id_profesor: $('#profesorId').val(),
+                    id_usu: $('#profesorId').val() ? $('#id_usu').val() : "",
                     nombre: $('#nombre').val(),
                     correo: $('#correo').val(),
                     contraseña: $('#contraseña').val(), // Asegurarse de enviar la contraseña
@@ -287,18 +312,22 @@
                 };
 
                 console.log("Datos enviados al backend:", profesor); // Log para depuración
-
+                
+                // Determinar si es una creación o actualización
+                const esActualizacion = profesor.id_profesor ? true : false;
+                
                 $.ajax({
                     url: '${pageContext.request.contextPath}/ProfesoresController',
-                    type: profesor.id_profesor ? 'PUT' : 'POST',
+                    type: esActualizacion ? 'PUT' : 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(profesor),
-                    success: function() {
+                    success: function(response) {
                         $('#profesorModal').modal('hide');
-                        $('#profesoresTable').DataTable().ajax.reload();
+                        mostrarAlerta('success', esActualizacion ? 'Profesor actualizado correctamente' : 'Profesor creado correctamente');
+                        cargarProfesores(); // Recargar la tabla con datos actualizados
                     },
                     error: function(xhr) {
-                        alert('Error al guardar el profesor: ' + xhr.responseText);
+                        mostrarAlerta('error', 'Error al guardar el profesor: ' + xhr.responseText);
                     }
                 });
             }
@@ -307,39 +336,117 @@
                 $.ajax({
                     url: '${pageContext.request.contextPath}/ProfesoresController?id=' + id,
                     type: 'GET',
-                    success: function(profesor) {
+                    success: function(response) {
+                        console.log("Datos del profesor recibidos:", response);
+                        
+                        // Si la respuesta es un array, tomar el profesor correcto
+                        let profesor;
+                        if (Array.isArray(response)) {
+                            // Buscar el profesor con el ID correcto
+                            profesor = response.find(p => p.id_profesor === id);
+                            if (!profesor) {
+                                profesor = response[0]; // Si no encontramos coincidencia, usar el primero
+                                console.warn("No se encontró el profesor con ID:", id, "usando el primer profesor del array");
+                            }
+                        } else {
+                            profesor = response;
+                        }
+                        
+                        console.log("Profesor seleccionado para editar:", profesor);
+                        
                         $('#profesorId').val(profesor.id_profesor);
+                        // Campo oculto para id_usu
+                        if (!$('#id_usu').length) {
+                            $('#profesorForm').append('<input type="hidden" id="id_usu" value="' + profesor.id_usu + '">');
+                        } else {
+                            $('#id_usu').val(profesor.id_usu);
+                        }
                         $('#nombre').val(profesor.nombre);
                         $('#correo').val(profesor.correo);
-                        $('#contraseña').val(profesor.contraseña); // Cargar contraseña
-                        $('#fechaNacimiento').val(profesor.fechaNacimiento);
+                        $('#contraseña').val(''); // La contraseña no se carga por seguridad
                         $('#telefono').val(profesor.telefono);
-                        $('#gradoAcademico').val(profesor.gradoAcademico);
+                        $('#gradoAcademico').val(profesor.grado_academico);
                         $('#especializacion').val(profesor.especializacion);
-                        $('#fechaContratacion').val(profesor.fechaContratacion);
                         $('#estado').val(profesor.estado);
                         $('#direccion').val(profesor.direccion);
+                        
+                        // Formato de fechas - Asegurarse de que las fechas se carguen correctamente
+                        if (profesor.fechaNacimiento) {
+                            $('#fechaNacimiento').val(profesor.fechaNacimiento);
+                        }
+                        if (profesor.fechaContratacion) {
+                            $('#fechaContratacion').val(profesor.fechaContratacion);
+                        }
+                        
+                        $('#modalTitle').text('Editar Profesor');
                         $('#profesorModal').modal('show');
                     },
                     error: function(xhr) {
-                        alert('Error al cargar los datos del profesor: ' + xhr.responseText);
+                        console.error("Error al cargar profesor:", xhr.responseText); // Depuración
+                        mostrarAlerta('error', 'Error al cargar los datos del profesor: ' + xhr.responseText);
                     }
                 });
             }
 
             function eliminarProfesor(id) {
+                // Validación del ID
+                if (!id || isNaN(id)) {
+                    console.error('ID de profesor inválido:', id);
+                    mostrarAlerta('error', 'ID de profesor inválido');
+                    return;
+                }
+
                 if (confirm('¿Está seguro de que desea eliminar este profesor?')) {
+                    console.log("Intentando eliminar profesor con ID:", id);
+                    
                     $.ajax({
                         url: '${pageContext.request.contextPath}/ProfesoresController?id=' + id,
                         type: 'DELETE',
-                        success: function() {
-                            $('#profesoresTable').DataTable().ajax.reload();
+                        success: function(response) {
+                            console.log("Profesor eliminado exitosamente:", response);
+                            mostrarAlerta('success', 'Profesor eliminado correctamente');
+                            cargarProfesores(); // Recargar la tabla después de eliminar
                         },
-                        error: function(xhr) {
-                            alert('Error al eliminar el profesor: ' + xhr.responseText);
+                        error: function(xhr, status, error) {
+                            console.error("Error al eliminar profesor:", {
+                                xhr: xhr,
+                                status: status,
+                                error: error,
+                                response: xhr.responseText
+                            });
+                            mostrarAlerta('error', 'Error al eliminar el profesor: ' + xhr.responseText);
                         }
                     });
                 }
+            }
+            
+            // Función para mostrar alertas
+            function mostrarAlerta(tipo, mensaje) {
+                let alertClass = 'alert-info';
+                if (tipo === 'success') alertClass = 'alert-success';
+                if (tipo === 'error') alertClass = 'alert-danger';
+                
+                const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${mensaje}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+                
+                // Insertar alerta en la parte superior
+                const alertContainer = document.createElement('div');
+                alertContainer.className = 'container mt-3';
+                alertContainer.innerHTML = alertHtml;
+                
+                // Insertar antes de la tabla
+                const cardElement = document.querySelector('.card');
+                cardElement.parentNode.insertBefore(alertContainer, cardElement);
+                
+                // Ocultar automáticamente después de 3 segundos
+                setTimeout(function() {
+                    $(alertContainer).fadeOut('slow', function() {
+                        $(this).remove();
+                    });
+                }, 3000);
             }
         </script>
     </body>

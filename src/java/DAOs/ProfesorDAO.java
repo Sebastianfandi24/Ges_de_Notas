@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import jakarta.xml.bind.DatatypeConverter;
 
 public class ProfesorDAO implements CRUD<Profesor> {
     private final Conexion conexion;
@@ -21,10 +24,20 @@ public class ProfesorDAO implements CRUD<Profesor> {
         LOGGER.info("ProfesorDAO inicializado");
     }
     
+    private String hashPassword(String password) throws NoSuchAlgorithmException {
+        if (password == null || password.isEmpty()) {
+            LOGGER.warning("[ProfesorDAO] Contraseña vacía o nula, usando contraseña predeterminada");
+            password = "123456"; // Contraseña predeterminada
+        }
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] digest = md.digest(password.getBytes());
+        return DatatypeConverter.printHexBinary(digest);
+    }
+    
     @Override
     public boolean create(Profesor profesor) {
         LOGGER.info("[ProfesorDAO] Iniciando creación de nuevo profesor: " + profesor.getNombre());
-        String sqlUsuario = "INSERT INTO USUARIO (nombre, correo, id_rol, fecha_creacion) VALUES (?, ?, ?, NOW())";
+        String sqlUsuario = "INSERT INTO USUARIO (nombre, correo, contraseña, id_rol, fecha_creacion) VALUES (?, ?, ?, ?, NOW())";
         String sqlProfesor = "INSERT INTO PROFESOR (idUsuario, fecha_nacimiento, direccion, telefono, grado_academico, especializacion, fecha_contratacion, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         
         try {
@@ -33,12 +46,23 @@ public class ProfesorDAO implements CRUD<Profesor> {
             conn.setAutoCommit(false);
             LOGGER.info("[ProfesorDAO] Conexión abierta, iniciando transacción...");
             
+            // Aplicar hash a la contraseña
+            String hashedPassword;
+            try {
+                hashedPassword = hashPassword(profesor.getContraseña());
+                LOGGER.info("[ProfesorDAO] Contraseña procesada con hash");
+            } catch (NoSuchAlgorithmException e) {
+                LOGGER.log(Level.SEVERE, "[ProfesorDAO] Error al aplicar hash a la contraseña", e);
+                throw new SQLException("Error al procesar la contraseña", e);
+            }
+            
             // Insertar en la tabla USUARIO
             ps = conn.prepareStatement(sqlUsuario, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, profesor.getNombre());
             ps.setString(2, profesor.getCorreo());
-            ps.setInt(3, profesor.getIdRol());
-            LOGGER.info("[ProfesorDAO] SQL Usuario: " + sqlUsuario + " | Parámetros: " + profesor.getNombre() + ", " + profesor.getCorreo() + ", " + profesor.getIdRol());
+            ps.setString(3, hashedPassword);
+            ps.setInt(4, profesor.getIdRol());
+            LOGGER.info("[ProfesorDAO] SQL Usuario: " + sqlUsuario + " | Parámetros: " + profesor.getNombre() + ", " + profesor.getCorreo() + ", [CONTRASEÑA_HASH], " + profesor.getIdRol());
             ps.executeUpdate();
             
             // Obtener el ID generado para el usuario
@@ -294,32 +318,68 @@ public class ProfesorDAO implements CRUD<Profesor> {
     
     @Override
     public boolean delete(int id) {
-        String sql = "DELETE FROM USUARIO WHERE id_usu = (SELECT idUsuario FROM PROFESOR WHERE id_profesor = ?)";
-        
         try {
-            LOGGER.info("[ProfesorDAO] Eliminando profesor con ID: " + id);
+            LOGGER.info("[ProfesorDAO] Iniciando eliminación del profesor con ID: " + id);
             conn = conexion.crearConexion();
-            ps = conn.prepareStatement(sql);
+            conn.setAutoCommit(false);
+
+            // Primero obtener el idUsuario
+            String sqlSelect = "SELECT idUsuario FROM PROFESOR WHERE id_profesor = ?";
+            ps = conn.prepareStatement(sqlSelect);
             ps.setInt(1, id);
-            int resultado = ps.executeUpdate();
-            LOGGER.info("[ProfesorDAO] Filas afectadas: " + resultado);
-            boolean exito = resultado > 0;
+            rs = ps.executeQuery();
             
-            if (exito) {
-                LOGGER.info("[ProfesorDAO] Profesor eliminado exitosamente");
-            } else {
-                LOGGER.warning("[ProfesorDAO] No se pudo eliminar el profesor con ID: " + id);
+            if (!rs.next()) {
+                LOGGER.warning("[ProfesorDAO] No se encontró el profesor con ID: " + id);
+                return false;
             }
             
-            return exito;
+            int idUsuario = rs.getInt("idUsuario");
+            LOGGER.info("[ProfesorDAO] ID de usuario asociado encontrado: " + idUsuario);
+            
+            // Primero eliminar de la tabla PROFESOR
+            String sqlProfesor = "DELETE FROM PROFESOR WHERE id_profesor = ?";
+            ps = conn.prepareStatement(sqlProfesor);
+            ps.setInt(1, id);
+            int resultadoProfesor = ps.executeUpdate();
+            LOGGER.info("[ProfesorDAO] Filas afectadas en PROFESOR: " + resultadoProfesor);
+            
+            // Luego eliminar de la tabla USUARIO
+            String sqlUsuario = "DELETE FROM USUARIO WHERE id_usu = ?";
+            ps = conn.prepareStatement(sqlUsuario);
+            ps.setInt(1, idUsuario);
+            int resultadoUsuario = ps.executeUpdate();
+            LOGGER.info("[ProfesorDAO] Filas afectadas en USUARIO: " + resultadoUsuario);
+            
+            if (resultadoProfesor > 0 && resultadoUsuario > 0) {
+                conn.commit();
+                LOGGER.info("[ProfesorDAO] Profesor eliminado exitosamente");
+                return true;
+            } else {
+                conn.rollback();
+                LOGGER.warning("[ProfesorDAO] No se pudo eliminar completamente el profesor");
+                return false;
+            }
             
         } catch (SQLException e) {
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                    LOGGER.warning("[ProfesorDAO] Transacción revertida");
+                }
+            } catch (SQLException ex) {
+                LOGGER.log(Level.SEVERE, "[ProfesorDAO] Error en rollback", ex);
+            }
             LOGGER.log(Level.SEVERE, "[ProfesorDAO] Error al eliminar profesor con ID: " + id, e);
             return false;
         } finally {
             try {
+                if (rs != null) rs.close();
                 if (ps != null) ps.close();
-                if (conn != null) conn.close();
+                if (conn != null) {
+                    conn.close();
+                    LOGGER.info("[ProfesorDAO] Conexiones cerradas");
+                }
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "[ProfesorDAO] Error al cerrar conexiones", e);
             }
