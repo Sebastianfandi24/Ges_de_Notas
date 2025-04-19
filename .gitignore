@@ -1,0 +1,43 @@
+# Archivos del sistema MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Archivos de NetBeans
+/build/
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Archivos compilados de Java
+*.class
+
+# Archivos de paquetes
+*.war
+*.ear
+
+# Mantener carpeta Driver y sus archivos
+!src/java/*
+!src/java/Driver/*
+
+# Directorios y archivos específicos de Java Web
+!web/WEB-INF/
+!web/WEB-INF/lib/
+!web/WEB-INF/classes/
+
+# Logs y archivos temporales
+*.log
+*.tmp
+*.bak
+*~
