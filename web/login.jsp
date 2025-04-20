@@ -7,6 +7,8 @@
     <title>Iniciar Sesión | Registro Académico</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome para iconos -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
     <style>
         /* Fondo full‑screen */
@@ -19,17 +21,31 @@
             font-family: 'Segoe UI', sans-serif;
         }
 
-        /* Tarjeta glassmorphism */
+        /* Tarjeta glassmorphism y posicionamiento para icono atrás */
         .login-container {
             max-width: 400px;
             margin: 6% auto 0;
             padding: 2.5rem;
+            position: relative;
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
             color: #fff;
+        }
+
+        /* Icono de volver atrás pequeño */
+        .login-container .back-icon {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            font-size: 1.2rem;
+            color: #fff;
+            text-decoration: none;
+        }
+        .login-container .back-icon:hover {
+            color: #ddd;
         }
 
         /* Títulos y textos */
@@ -98,6 +114,7 @@
 
     <div class="container">
         <div class="login-container">
+            <a href="${pageContext.request.contextPath}/index.jsp" class="back-icon"><i class="fas fa-arrow-left"></i></a>
             <h3 class="text-center fw-bold">Iniciar Sesión</h3>
             <p class="text-center text-muted">Ingrese sus credenciales para acceder al sistema</p>
 
