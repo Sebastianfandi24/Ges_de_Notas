@@ -128,7 +128,7 @@
     <div class="container-fluid py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Gestión de Actividades</h2>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#actividadModal">
+            <button id="btnNuevaActividad" class="btn btn-primary" onclick="abrirNuevaActividad()">
                 <i class="fas fa-plus-circle me-2"></i> Nueva Actividad
             </button>
         </div>
@@ -194,8 +194,9 @@
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script>
+        var tableActividades;
         $(document).ready(function() {
-            cargarActividades();
+            initActividadesTable();
             cargarRolesActividades(); // NUEVO: cargar roles disponibles
         });
 
@@ -217,56 +218,41 @@
             });
         }
 
-        function cargarActividades() {
-            $.ajax({
-                url: '${pageContext.request.contextPath}/ActividadesController',
-                type: 'GET',
-                success: function(data) {
-                    // Nueva validación para asegurar JSON válido
-                    if (typeof data === "string") {
-                        try {
-                            data = JSON.parse(data);
-                        } catch (e) {
-                            console.error("Error al parsear JSON:", e);
-                            alert("Error al parsear respuesta JSON: " + e);
-                            return;
-                        }
-                    }
-                    const table = $('#actividadesTable').DataTable({
-                        data: data,
-                        columns: [
-                            { data: 'id_actividad' },
-                            { data: 'nombre' },
-                            { data: 'enlace' },
-                            {
-                                data: 'roles',
-                                render: function(data) {
-                                    return data.map(role => role.nombre).join(', ');
-                                }
-                            },
-                            {
-                                data: null,
-                                render: function(data, type, row) {
-                                    return `
-                                        <div class="action-buttons">
-                                            <button class="btn btn-sm btn-info" onclick="editarActividad(${row.id_actividad})" title="Editar actividad">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="eliminarActividad(${row.id_actividad})" title="Eliminar actividad">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </div>`;
-                                }
-                            }
-                        ],
-                        language: {
-                            url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
-                        }
-                    });
+        function initActividadesTable() {
+            tableActividades = $('#actividadesTable').DataTable({
+                ajax: {
+                    url: '${pageContext.request.contextPath}/ActividadesController',
+                    dataSrc: ''
                 },
-                error: function(xhr) {
-                    alert('Error al cargar las actividades: ' + xhr.responseText);
+                columns: [
+                    { data: 'id_actividad' },
+                    { data: 'nombre' },
+                    { data: 'enlace' },
+                    { data: 'roles', render: function(roles) {
+                        return roles.map(function(r) { return r.nombre; }).join(', ');
+                    }},
+                    { data: null, orderable: false, defaultContent:
+                        '<div class="action-buttons">'
+                        + '<button class="btn btn-sm btn-info edit-btn" title="Editar actividad">'
+                            + '<i class="fas fa-edit"></i>'
+                        + '</button>'
+                        + '<button class="btn btn-sm btn-danger delete-btn" title="Eliminar actividad">'
+                            + '<i class="fas fa-trash-alt"></i>'
+                        + '</button>'
+                        + '</div>'
+                    }
+                ],
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
                 }
+            });
+            $('#actividadesTable tbody').on('click', '.edit-btn', function() {
+                var data = tableActividades.row($(this).closest('tr')).data();
+                editarActividad(data.id_actividad);
+            });
+            $('#actividadesTable tbody').on('click', '.delete-btn', function() {
+                var data = tableActividades.row($(this).closest('tr')).data();
+                eliminarActividad(data.id_actividad);
             });
         }
 
@@ -285,7 +271,7 @@
                 data: JSON.stringify(actividad),
                 success: function() {
                     $('#actividadModal').modal('hide');
-                    $('#actividadesTable').DataTable().ajax.reload();
+                    tableActividades.ajax.reload();
                 },
                 error: function(xhr) {
                     alert('Error al guardar la actividad: ' + xhr.responseText);
@@ -297,15 +283,18 @@
             $.ajax({
                 url: '${pageContext.request.contextPath}/ActividadesController?id=' + id,
                 type: 'GET',
+                dataType: 'json',
                 success: function(actividad) {
                     $('#actividadId').val(actividad.id_actividad);
                     $('#nombre').val(actividad.nombre);
                     $('#enlace').val(actividad.enlace);
-                    $('#roles').val(actividad.roles.map(role => role.id_rol));
+                    $('#roles').val(actividad.roles.map(function(r) { return r.id_rol; }));
                     $('#actividadModal').modal('show');
                 },
                 error: function(xhr) {
-                    alert('Error al cargar los datos de la actividad: ' + xhr.responseText);
+                    var msg;
+                    try { msg = JSON.parse(xhr.responseText).error; } catch(e) { msg = xhr.statusText; }
+                    alert('Error al cargar la actividad: ' + msg);
                 }
             });
         }
@@ -315,14 +304,27 @@
                 $.ajax({
                     url: '${pageContext.request.contextPath}/ActividadesController?id=' + id,
                     type: 'DELETE',
+                    dataType: 'json',
                     success: function() {
-                        $('#actividadesTable').DataTable().ajax.reload();
+                        tableActividades.ajax.reload();
                     },
                     error: function(xhr) {
-                        alert('Error al eliminar la actividad: ' + xhr.responseText);
+                        var msg;
+                        try { msg = JSON.parse(xhr.responseText).error; } catch(e) { msg = xhr.statusText; }
+                        alert('Error al eliminar la actividad: ' + msg);
                     }
                 });
             }
+        }
+
+        // Limpia el formulario al crear nueva actividad
+        function abrirNuevaActividad() {
+            $('#actividadId').val('');
+            $('#nombre').val('');
+            $('#enlace').val('');
+            $('#roles').val([]);
+            $('#modalTitle').text('Nueva Actividad');
+            $('#actividadModal').modal('show');
         }
     </script>
 </body>
