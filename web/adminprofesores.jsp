@@ -113,7 +113,7 @@
         <div class="container-fluid py-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>Gestión de Profesores</h2>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#profesorModal">
+                <button class="btn btn-primary" onclick="abrirModalNuevoProfesor()" data-bs-toggle="modal" data-bs-target="#profesorModal">
                     <i class="fas fa-plus-circle me-2"></i> Nuevo Profesor
                 </button>
             </div>
@@ -151,6 +151,7 @@
                         <div class="modal-body">
                             <form id="profesorForm">
                                 <input type="hidden" id="profesorId">
+                                <input type="hidden" id="id_usu">
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Nombre</label>
@@ -201,7 +202,8 @@
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Contraseña</label>
-                                        <input type="password" class="form-control" id="contrasena">
+                                        <input type="password" class="form-control" id="contrasena" placeholder="Dejar en blanco para no cambiar">
+                                        <small id="contrasenaHelp" class="form-text text-muted">Contraseña requerida para nuevos profesores.</small>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -267,21 +269,18 @@
                                 {
                                     data: null,
                                     render: function(data, type, row) {
-                                        // Asegurarse de que row.id_profesor tenga un valor válido
-                                        const profesorId = row.id_profesor;
-                                        if (profesorId === undefined || profesorId === null) {
-                                            console.error("ID de profesor no encontrado en los datos de la fila:", row);
-                                            return ''; // No renderizar botones si el ID no es válido
+                                        var profesorId = row.id_profesor;
+                                        if (!profesorId) {
+                                            return '';
                                         }
-                                        return `
-                                            <div class="action-buttons">
-                                                <button class="btn btn-sm btn-info" onclick="editarProfesor(${profesorId})" title="Editar profesor">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-danger" onclick="eliminarProfesor(${profesorId})" title="Eliminar profesor">
-                                                    <i class="fas fa-trash-alt"></i>
-                                                </button>
-                                            </div>`;
+                                        return '<div class="action-buttons">'
+                                            + '<button class="btn btn-sm btn-info" onclick="editarProfesor(' + profesorId + ')" title="Editar">'
+                                                + '<i class="fas fa-edit"></i>'
+                                            + '</button>'
+                                            + '<button class="btn btn-sm btn-danger" onclick="eliminarProfesor(' + profesorId + ')" title="Eliminar">'
+                                                + '<i class="fas fa-trash-alt"></i>'
+                                            + '</button>'
+                                        + '</div>';
                                     }
                                 }
                             ],
@@ -296,13 +295,27 @@
                 });
             }
 
+            function abrirModalNuevoProfesor() {
+                $('#profesorForm')[0].reset();
+                $('#profesorId').val('');
+                $('#id_usu').val(''); // Resetear id_usu oculto
+                $('#contrasena').prop('required', true).attr('placeholder', 'Contraseña (obligatoria)');
+                $('#contrasenaHelp').show();
+                $('#modalTitle').text('Nuevo Profesor');
+            }
+
             function guardarProfesor() {
+                const esNuevo = !$('#profesorId').val();
+                const contrasenaInput = $('#contrasena').val();
+                if (esNuevo && !contrasenaInput) {
+                    mostrarAlerta('error', 'La contraseña es obligatoria para nuevos profesores');
+                    return;
+                }
                 const profesor = {
-                    id_profesor: $('#profesorId').val(),
-                    id_usu: $('#profesorId').val() ? $('#id_usu').val() : "",
+                    id_profesor: $('#profesorId').val() || null,
+                    id_usu: $('#profesorId').val() ? $('#id_usu').val() : null,
                     nombre: $('#nombre').val(),
                     correo: $('#correo').val(),
-                    contrasena: $('#contrasena').val(), // Cambiado a 'contrasena' sin ñ
                     telefono: $('#telefono').val(),
                     grado_academico: $('#gradoAcademico').val(),
                     especializacion: $('#especializacion').val(),
@@ -310,6 +323,9 @@
                     estado: $('#estado').val(),
                     direccion: $('#direccion').val()
                 };
+                if (contrasenaInput) {
+                    profesor.contrasena = contrasenaInput;
+                }
 
                 console.log("Datos enviados al backend:", profesor); // Log para depuración
                 
@@ -333,87 +349,56 @@
             }
 
             function editarProfesor(id) {
+                console.log('editarProfesor llamado con id:', id);
+                if (!id || isNaN(id)) {
+                    mostrarAlerta('error', 'ID de profesor inválido');
+                    return;
+                }
                 $.ajax({
-                    url: '${pageContext.request.contextPath}/ProfesoresController?id=' + id,
+                    url: `${pageContext.request.contextPath}/ProfesoresController?id=` + id,
                     type: 'GET',
                     success: function(response) {
-                        console.log("Datos del profesor recibidos:", response);
-                        
-                        // Si la respuesta es un array, tomar el profesor correcto
-                        let profesor;
-                        if (Array.isArray(response)) {
-                            // Buscar el profesor con el ID correcto
-                            profesor = response.find(p => p.id_profesor === id);
-                            if (!profesor) {
-                                profesor = response[0]; // Si no encontramos coincidencia, usar el primero
-                                console.warn("No se encontró el profesor con ID:", id, "usando el primer profesor del array");
-                            }
-                        } else {
-                            profesor = response;
-                        }
-                        
-                        console.log("Profesor seleccionado para editar:", profesor);
-                        
+                        let profesor = Array.isArray(response)
+                            ? response.find(p => p.id_profesor === id) || response[0]
+                            : response;
                         $('#profesorId').val(profesor.id_profesor);
-                        // Campo oculto para id_usu
-                        if (!$('#id_usu').length) {
-                            $('#profesorForm').append('<input type="hidden" id="id_usu" value="' + profesor.id_usu + '">');
-                        } else {
-                            $('#id_usu').val(profesor.id_usu);
-                        }
+                        $('#id_usu').val(profesor.id_usu);
                         $('#nombre').val(profesor.nombre);
                         $('#correo').val(profesor.correo);
-                        $('#contrasena').val(''); // La contraseña no se carga por seguridad
+                        $('#contrasena').val('');
                         $('#telefono').val(profesor.telefono);
                         $('#gradoAcademico').val(profesor.grado_academico);
                         $('#especializacion').val(profesor.especializacion);
                         $('#estado').val(profesor.estado);
                         $('#direccion').val(profesor.direccion);
-                        
-                        // Formato de fechas - Asegurarse de que las fechas se carguen correctamente
-                        if (profesor.fechaNacimiento) {
-                            $('#fechaNacimiento').val(profesor.fechaNacimiento);
-                        }
-                        if (profesor.fechaContratacion) {
-                            $('#fechaContratacion').val(profesor.fechaContratacion);
-                        }
-                        
+                        if (profesor.fechaNacimiento) $('#fechaNacimiento').val(profesor.fechaNacimiento);
+                        if (profesor.fechaContratacion) $('#fechaContratacion').val(profesor.fechaContratacion);
+                        $('#contrasena').prop('required', false).attr('placeholder', 'Dejar en blanco para no cambiar');
+                        $('#contrasenaHelp').hide();
                         $('#modalTitle').text('Editar Profesor');
                         $('#profesorModal').modal('show');
                     },
                     error: function(xhr) {
-                        console.error("Error al cargar profesor:", xhr.responseText); // Depuración
                         mostrarAlerta('error', 'Error al cargar los datos del profesor: ' + xhr.responseText);
                     }
                 });
             }
 
             function eliminarProfesor(id) {
-                // Validación del ID
+                console.log('eliminarProfesor llamado con id:', id);
                 if (!id || isNaN(id)) {
-                    console.error('ID de profesor inválido:', id);
                     mostrarAlerta('error', 'ID de profesor inválido');
                     return;
                 }
-
                 if (confirm('¿Está seguro de que desea eliminar este profesor?')) {
-                    console.log("Intentando eliminar profesor con ID:", id);
-                    
                     $.ajax({
-                        url: '${pageContext.request.contextPath}/ProfesoresController?id=' + id,
+                        url: `${pageContext.request.contextPath}/ProfesoresController/` + id,
                         type: 'DELETE',
-                        success: function(response) {
-                            console.log("Profesor eliminado exitosamente:", response);
+                        success: function() {
                             mostrarAlerta('success', 'Profesor eliminado correctamente');
-                            cargarProfesores(); // Recargar la tabla después de eliminar
+                            cargarProfesores();
                         },
-                        error: function(xhr, status, error) {
-                            console.error("Error al eliminar profesor:", {
-                                xhr: xhr,
-                                status: status,
-                                error: error,
-                                response: xhr.responseText
-                            });
+                        error: function(xhr) {
                             mostrarAlerta('error', 'Error al eliminar el profesor: ' + xhr.responseText);
                         }
                     });

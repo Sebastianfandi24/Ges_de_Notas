@@ -25,9 +25,9 @@ public class ProfesorDAO implements CRUD<Profesor> {
     }
     
     private String hashPassword(String password) throws NoSuchAlgorithmException {
-        if (password == null || password.isEmpty()) {
-            LOGGER.warning("[ProfesorDAO] Contraseña vacía o nula, usando contraseña predeterminada");
-            password = "123456"; // Contraseña predeterminada
+        // No se permite contraseña por defecto; asumir que el frontend valida la presencia si es necesario
+        if (password == null) {
+            throw new NoSuchAlgorithmException("Contraseña nula al aplicar hash");
         }
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] digest = md.digest(password.getBytes());
@@ -225,7 +225,11 @@ public class ProfesorDAO implements CRUD<Profesor> {
     
     @Override
     public boolean update(Profesor profesor) {
-        String sqlUsuario = "UPDATE USUARIO SET nombre = ?, correo = ? WHERE id_usu = ?";
+        // Construcción dinámica de SQL para incluir contraseña si se proporcionó
+        boolean cambiarContrasena = profesor.getContraseña() != null && !profesor.getContraseña().isEmpty();
+        String sqlUsuario = cambiarContrasena
+            ? "UPDATE USUARIO SET nombre = ?, correo = ?, contraseña = ? WHERE id_usu = ?"
+            : "UPDATE USUARIO SET nombre = ?, correo = ? WHERE id_usu = ?";
         String sqlProfesor = "UPDATE PROFESOR SET fecha_nacimiento = ?, direccion = ?, telefono = ?, grado_academico = ?, especializacion = ?, fecha_contratacion = ?, estado = ? WHERE id_profesor = ?";
         
         try {
@@ -237,8 +241,22 @@ public class ProfesorDAO implements CRUD<Profesor> {
             ps = conn.prepareStatement(sqlUsuario);
             ps.setString(1, profesor.getNombre());
             ps.setString(2, profesor.getCorreo());
-            ps.setInt(3, profesor.getId_usu());
-            LOGGER.info("[ProfesorDAO] SQL Usuario: " + sqlUsuario + " | Parámetros: " + profesor.getNombre() + ", " + profesor.getCorreo() + ", " + profesor.getId_usu());
+            if (cambiarContrasena) {
+                // Hashear nueva contraseña con manejo de excepción
+                String hashed;
+                try {
+                    hashed = hashPassword(profesor.getContraseña());
+                } catch (NoSuchAlgorithmException e) {
+                    throw new SQLException("Error al procesar la contraseña", e);
+                }
+                ps.setString(3, hashed);
+                ps.setInt(4, profesor.getId_usu());
+            } else {
+                ps.setInt(3, profesor.getId_usu());
+            }
+            LOGGER.info("[ProfesorDAO] SQL Usuario: " + sqlUsuario + " | Parámetros: " + profesor.getNombre() + ", " + profesor.getCorreo()
+                      + (cambiarContrasena ? ", [CONTRASEÑA_HASH]" : "")
+                      + ", idUsu=" + profesor.getId_usu());
             LOGGER.info("[ProfesorDAO] Actualizando información de usuario...");
             int resultado1 = ps.executeUpdate();
             LOGGER.info("[ProfesorDAO] Filas afectadas en USUARIO: " + resultado1);

@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,12 +16,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import com.google.gson.Gson;
 
 /**
  * Controlador para gestionar los profesores del sistema
  */
-@WebServlet("/ProfesoresController")
+@WebServlet(urlPatterns = {"/ProfesoresController", "/ProfesoresController/*"})
 public class ProfesoresController extends HttpServlet {
 
     private final ProfesorDAO profesorDAO;
@@ -133,12 +131,6 @@ public class ProfesoresController extends HttpServlet {
             LOGGER.log(Level.SEVERE, "Error al convertir profesor a JSON", e);
             throw e;
         }
-    }
-
-    private String descodificarContraseña(String contraseñaCodificada) {
-        // En este punto, contraseñaCodificada es un hash SHA-256. Usaremos un valor fijo para mostrar
-        // ya que no podemos recuperar la contraseña original desde un hash.
-        return "********"; // Se muestra un valor fijo por seguridad
     }
 
     /**
@@ -307,6 +299,13 @@ public class ProfesoresController extends HttpServlet {
                 LOGGER.info("ProfesoresController: Sin fecha de contratación");
             }
 
+            // Obtener nueva contraseña si se proporcionó
+            String contrasenaRecibida = jsonRequest.optString("contrasena", null);
+            if (contrasenaRecibida != null && !contrasenaRecibida.isEmpty()) {
+                LOGGER.info("ProfesoresController: Contraseña proporcionada para actualización");
+                profesor.setContraseña(contrasenaRecibida);
+            }
+
             // Actualizar el profesor
             LOGGER.info("ProfesoresController: Actualizando profesor ID: " + profesor.getId());
             boolean exito = actualizarProfesor(profesor);
@@ -386,14 +385,6 @@ public class ProfesoresController extends HttpServlet {
     }
     
     // Métodos auxiliares para interactuar con la base de datos
-    private Profesor obtenerProfesorPorId(int id) {
-        return profesorDAO.read(id);
-    }
-
-    private List<Profesor> obtenerTodosProfesores() {
-        return profesorDAO.readAll();
-    }
-
     private boolean crearProfesor(Profesor profesor) {
         return profesorDAO.create(profesor);
     }
