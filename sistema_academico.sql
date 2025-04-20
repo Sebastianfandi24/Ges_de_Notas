@@ -192,26 +192,32 @@ INSERT INTO `usuario` (`id_usu`, `nombre`, `correo`, `contraseña`, `id_rol`, `f
 (3, 'Estudiante User', 'estudiante@example.com', '2E63A1090735F47213FEA3B974418E3E42437325F313B3D3D2F6238CC22298F9', 1, '2025-04-16 20:58:40', '2025-04-17 00:00:00');
 
 INSERT INTO `actividad` (`id_actividad`, `nombre`, `enlace`) VALUES
-(1, 'Gestionar Profesores', 'Ges_de_Notasd/adminprofesores.jsp'),
-(2, 'Gestionar Estudiantes', 'Ges_de_Notas/adminestudiantes.jsp'),
-(3, 'Gestionar Cursos', 'Ges_de_Notasboard/admincursos.jsp'),
-(4, 'Ver Mis Cursos', 'Ges_de_Notas/profesorcursos.jsp'),
-(5, 'Crear Tarea', 'Ges_de_Notas/profesortareas.jsp'),
-(6, 'Calificar Tareas', 'Ges_de_Notas/profesortareas.jsp'),
-(7, 'Ver Cursos Estudiante', 'Ges_de_Notas/estudiantecursos.jsp'),
-(8, 'Ver Tareas Estudiante', 'Ges_de_Notas/estudiantetareas.jsp'),
-(9, 'Ver Notas Estudiante', 'Ges_de_Notas/estudiantecursos.jsp');
+(1, 'Gestionar Profesores', 'adminprofesores.jsp'),
+(2, 'Gestionar Estudiantes', 'adminestudiantes.jsp'),
+(3, 'Gestionar Cursos', 'admincursos.jsp'),
+(4, 'Gestion de Actividades', 'adminactividades.jsp'),
+(5, 'Dashboard_admin', 'adminindex.jsp'),
+(6, 'Dashboard_profesor', 'profesorindex.jsp'),
+(7, 'Mis Cursos_profesor', 'profesorcursos.jsp'),
+(8, 'Gestion de Tareas', 'profesortareas.jsp'),
+(9, 'Gestion de Notas', 'profesornotas.jsp'),
+(10, 'Dashboard_estudiante', 'estudianteindex.jsp'),
+(11, 'Mis Cursos_estudiante', 'estudiantecursos.jsp'),
+(12, 'Mis Tareas', 'estudiantetareas.jsp');
 
 INSERT INTO `gestion_actividades` (`id_rol`, `id_actividad`) VALUES
-(1, 7),
-(1, 8),
-(1, 9),
-(2, 4),
-(2, 5),
-(2, 6),
 (3, 1),
 (3, 2),
-(3, 3);
+(3, 3),
+(3, 4),
+(3, 5),
+(2, 6),
+(2, 7),
+(2, 8),
+(2, 9),
+(1, 10),
+(1, 11),
+(1, 12);
 
 INSERT INTO `administrador` (`id_admin`, `idUsuario`, `departamento`, `fecha_ingreso`) VALUES
 (1, 1, 'Sistemas', '2019-01-10 08:00:00');
