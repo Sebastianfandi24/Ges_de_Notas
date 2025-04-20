@@ -32,13 +32,11 @@ public class CursosController extends HttpServlet {
         
         try (PrintWriter out = response.getWriter()) {
             String pathInfo = request.getPathInfo();
+            String idParam = request.getParameter("id");
             
-            if (pathInfo == null || pathInfo.equals("/")) {
-                // Obtener todos los cursos o un curso específico por ID
-                String idParam = request.getParameter("id");
-                
-                if (idParam != null) {
-                    // Obtener un curso específico
+            if (idParam != null) {
+                // Obtener un curso específico
+                try {
                     int id = Integer.parseInt(idParam);
                     Curso curso = obtenerCursoPorId(id);
                     
@@ -48,106 +46,47 @@ public class CursosController extends HttpServlet {
                         jsonCurso.put("nombre", curso.getNombre());
                         jsonCurso.put("codigo", curso.getCodigo());
                         jsonCurso.put("descripcion", curso.getDescripcion());
-                        jsonCurso.put("id_profesor", curso.getIdProfesor());
-                        jsonCurso.put("nombre_profesor", curso.getNombreProfesor());
+                        jsonCurso.put("idProfesor", curso.getIdProfesor());
                         jsonCurso.put("profesor_nombre", curso.getNombreProfesor());
                         
                         out.print(jsonCurso.toString());
                     } else {
                         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                        out.print(new JSONObject().put("error", "Curso no encontrado").toString());
+                        JSONObject error = new JSONObject();
+                        error.put("error", "Curso no encontrado");
+                        out.print(error.toString());
                     }
-                } else {
-                    // Obtener todos los cursos
-                    List<Curso> cursos = obtenerTodosCursos();
-                    JSONArray jsonArray = new JSONArray();
-                    
-                    for (Curso curso : cursos) {
-                        JSONObject jsonCurso = new JSONObject();
-                        jsonCurso.put("id_curso", curso.getId());
-                        jsonCurso.put("nombre", curso.getNombre());
-                        jsonCurso.put("codigo", curso.getCodigo());
-                        jsonCurso.put("descripcion", curso.getDescripcion());
-                        jsonCurso.put("id_profesor", curso.getIdProfesor());
-                        jsonCurso.put("profesor_nombre", curso.getNombreProfesor()); 
-                        jsonCurso.put("cantidadEstudiantes", curso.getCantidadEstudiantes());
-                        
-                        jsonArray.put(jsonCurso);
-                    }
-                    
-                    out.print(jsonArray.toString());
-                }
-            } else if (pathInfo.startsWith("/profesor/")) {
-                // Obtener cursos por profesor
-                String idProfesorStr = pathInfo.substring("/profesor/".length());
-                int idProfesor = Integer.parseInt(idProfesorStr);
-                
-                List<Curso> cursos = obtenerCursosPorProfesor(idProfesor);
-                JSONArray jsonArray = new JSONArray();
-                
-                for (Curso curso : cursos) {
-                    JSONObject jsonCurso = new JSONObject();
-                    jsonCurso.put("id_curso", curso.getId());
-                    jsonCurso.put("nombre", curso.getNombre());
-                    jsonCurso.put("codigo", curso.getCodigo());
-                    jsonCurso.put("descripcion", curso.getDescripcion());
-                    jsonCurso.put("id_profesor", curso.getIdProfesor());
-                    jsonCurso.put("nombre_profesor", curso.getNombreProfesor());
-                    jsonCurso.put("cantidadEstudiantes", curso.getCantidadEstudiantes());
-                    
-                    jsonArray.put(jsonCurso);
-                }
-                
-                out.print(jsonArray.toString());
-            } else if (pathInfo.startsWith("/estudiante/")) {
-                // Obtener cursos por estudiante
-                String idEstudianteStr = pathInfo.substring("/estudiante/".length());
-                int idEstudiante = Integer.parseInt(idEstudianteStr);
-                
-                List<Curso> cursos = obtenerCursosPorEstudiante(idEstudiante);
-                JSONArray jsonArray = new JSONArray();
-                
-                for (Curso curso : cursos) {
-                    JSONObject jsonCurso = new JSONObject();
-                    jsonCurso.put("id_curso", curso.getId());
-                    jsonCurso.put("nombre", curso.getNombre());
-                    jsonCurso.put("codigo", curso.getCodigo());
-                    jsonCurso.put("descripcion", curso.getDescripcion());
-                    jsonCurso.put("id_profesor", curso.getIdProfesor());
-                    jsonCurso.put("nombre_profesor", curso.getNombreProfesor());
-                    jsonCurso.put("cantidadEstudiantes", curso.getCantidadEstudiantes());
-                    
-                    jsonArray.put(jsonCurso);
-                }
-                
-                out.print(jsonArray.toString());
-            } else if (pathInfo.startsWith("/estudiantes")) {
-                // Obtener estudiantes por curso
-                String idParam = request.getParameter("id");
-                
-                if (idParam != null) {
-                    int idCurso = Integer.parseInt(idParam);
-                    List<Estudiante> estudiantes = obtenerEstudiantesPorCurso(idCurso);
-                    JSONArray jsonArray = new JSONArray();
-                    
-                    for (Estudiante estudiante : estudiantes) {
-                        JSONObject jsonEstudiante = new JSONObject();
-                        jsonEstudiante.put("id_estudiante", estudiante.getId());
-                        jsonEstudiante.put("nombre", estudiante.getNombre());
-                        jsonEstudiante.put("telefono", estudiante.getTelefono());
-                        jsonEstudiante.put("correo", estudiante.getCorreo());
-                        jsonArray.put(jsonEstudiante);
-                    }
-                    
-                    out.print(jsonArray.toString());
-                } else {
+                } catch (NumberFormatException e) {
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    out.print(new JSONObject().put("error", "ID de curso no proporcionado").toString());
+                    JSONObject error = new JSONObject();
+                    error.put("error", "ID de curso inválido");
+                    out.print(error.toString());
                 }
+            } else {
+                // Obtener todos los cursos
+                List<Curso> cursos = obtenerTodosCursos();
+                JSONArray jsonArray = new JSONArray();
+                
+                for (Curso curso : cursos) {
+                    JSONObject jsonCurso = new JSONObject();
+                    jsonCurso.put("id_curso", curso.getId());
+                    jsonCurso.put("nombre", curso.getNombre());
+                    jsonCurso.put("codigo", curso.getCodigo());
+                    jsonCurso.put("descripcion", curso.getDescripcion());
+                    jsonCurso.put("idProfesor", curso.getIdProfesor());
+                    jsonCurso.put("profesor_nombre", curso.getNombreProfesor());
+                    jsonCurso.put("cantidadEstudiantes", curso.getCantidadEstudiantes());
+                    
+                    jsonArray.put(jsonCurso);
+                }
+                
+                out.print(jsonArray.toString());
             }
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().print(new JSONObject().put("error", e.getMessage()).toString());
+            JSONObject error = new JSONObject();
+            error.put("error", "Error interno del servidor: " + e.getMessage());
+            response.getWriter().print(error.toString());
         }
     }
 
@@ -176,6 +115,7 @@ public class CursosController extends HttpServlet {
                 // Crear objeto Curso
                 Curso curso = new Curso();
                 curso.setNombre(jsonRequest.getString("nombre"));
+                curso.setCodigo(jsonRequest.getString("codigo"));
                 curso.setDescripcion(jsonRequest.getString("descripcion"));
                 curso.setIdProfesor(jsonRequest.getInt("id_profesor"));
                 
@@ -184,10 +124,14 @@ public class CursosController extends HttpServlet {
                 
                 if (exito) {
                     response.setStatus(HttpServletResponse.SC_CREATED);
-                    response.getWriter().print(new JSONObject().put("mensaje", "Curso creado exitosamente").toString());
+                    JSONObject jsonResponse = new JSONObject();
+                    jsonResponse.put("mensaje", "Curso creado exitosamente");
+                    response.getWriter().print(jsonResponse.toString());
                 } else {
                     response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    response.getWriter().print(new JSONObject().put("error", "Error al crear el curso").toString());
+                    JSONObject jsonError = new JSONObject();
+                    jsonError.put("error", "Error al crear el curso");
+                    response.getWriter().print(jsonError.toString());
                 }
             } else if (pathInfo.equals("/estudiantes")) {
                 // Asignar estudiantes a un curso
@@ -219,7 +163,9 @@ public class CursosController extends HttpServlet {
             }
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().print(new JSONObject().put("error", e.getMessage()).toString());
+            JSONObject jsonError = new JSONObject();
+            jsonError.put("error", e.getMessage());
+            response.getWriter().print(jsonError.toString());
         }
     }
 
@@ -233,6 +179,16 @@ public class CursosController extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
         
         try {
+            // Obtener el ID del curso de los parámetros de la URL
+            String idParam = request.getParameter("id");
+            if (idParam == null || idParam.isEmpty()) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                JSONObject jsonError = new JSONObject();
+                jsonError.put("error", "ID de curso no proporcionado");
+                response.getWriter().print(jsonError.toString());
+                return;
+            }
+            
             // Leer el cuerpo de la solicitud
             StringBuilder sb = new StringBuilder();
             String line;
@@ -244,8 +200,9 @@ public class CursosController extends HttpServlet {
             
             // Crear objeto Curso
             Curso curso = new Curso();
-            curso.setId(jsonRequest.getInt("id_curso"));
+            curso.setId(Integer.parseInt(idParam));
             curso.setNombre(jsonRequest.getString("nombre"));
+            curso.setCodigo(jsonRequest.getString("codigo"));
             curso.setDescripcion(jsonRequest.getString("descripcion"));
             curso.setIdProfesor(jsonRequest.getInt("id_profesor"));
             
@@ -254,14 +211,20 @@ public class CursosController extends HttpServlet {
             
             if (exito) {
                 response.setStatus(HttpServletResponse.SC_OK);
-                response.getWriter().print(new JSONObject().put("mensaje", "Curso actualizado exitosamente").toString());
+                JSONObject jsonResponse = new JSONObject();
+                jsonResponse.put("mensaje", "Curso actualizado exitosamente");
+                response.getWriter().print(jsonResponse.toString());
             } else {
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                response.getWriter().print(new JSONObject().put("error", "Error al actualizar el curso").toString());
+                JSONObject jsonError = new JSONObject();
+                jsonError.put("error", "Error al actualizar el curso");
+                response.getWriter().print(jsonError.toString());
             }
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().print(new JSONObject().put("error", e.getMessage()).toString());
+            JSONObject jsonError = new JSONObject();
+            jsonError.put("error", e.getMessage());
+            response.getWriter().print(jsonError.toString());
         }
     }
 

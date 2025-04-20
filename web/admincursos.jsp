@@ -99,40 +99,39 @@
         });
 
         function cargarCursos() {
-            $.ajax({
-                url: '${pageContext.request.contextPath}/CursosController',
-                type: 'GET',
-                success: function(data) {
-                    const table = $('#cursosTable').DataTable({
-                        data: data,
-                        columns: [
-                            { data: 'id_curso' },
-                            { data: 'nombre' },
-                            { data: 'codigo' },
-                            { data: 'descripcion' },
-                            { data: 'profesor_nombre' },
-                            {
-                                data: null,
-                                render: function(data, type, row) {
-                                    return `
-                                        <div class="action-buttons">
-                                            <button class="btn btn-sm btn-info" onclick="editarCurso(${row.id_curso})" title="Editar curso">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="eliminarCurso(${row.id_curso})" title="Eliminar curso">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </div>`;
-                                }
-                            }
-                        ],
-                        language: {
-                            url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
-                        }
-                    });
+            if ($.fn.DataTable.isDataTable('#cursosTable')) {
+                $('#cursosTable').DataTable().destroy();
+            }
+            
+            $('#cursosTable').DataTable({
+                ajax: {
+                    url: '${pageContext.request.contextPath}/CursosController',
+                    type: 'GET',
+                    dataSrc: ''
                 },
-                error: function(xhr) {
-                    alert('Error al cargar los cursos: ' + xhr.responseText);
+                columns: [
+                    { data: 'id_curso' },
+                    { data: 'nombre' },
+                    { data: 'codigo' },
+                    { data: 'descripcion' },
+                    { data: 'profesor_nombre' },
+                    {
+                        data: null,
+                        render: function(data, type, row) {
+                            return `
+                                <div class="action-buttons">
+                                    <button type="button" class="btn btn-sm btn-info" onclick="editarCurso(${row.id_curso})" title="Editar curso">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="eliminarCurso(${row.id_curso})" title="Eliminar curso">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>`;
+                        }
+                    }
+                ],
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
                 }
             });
         }
@@ -155,61 +154,99 @@
         }
 
         function guardarCurso() {
-            const curso = {
-                id_curso: $('#cursoId').val(),
+            var cursoData = {
+                id_curso: $('#cursoId').val() || null,
                 nombre: $('#nombre').val(),
                 codigo: $('#codigo').val(),
                 descripcion: $('#descripcion').val(),
-                idProfesor: $('#idProfesor').val()
+                idProfesor: parseInt($('#idProfesor').val())
             };
 
+            var method = cursoData.id_curso ? 'PUT' : 'POST';
+            var url = cursoData.id_curso 
+                ? '${pageContext.request.contextPath}/CursosController?id=' + cursoData.id_curso
+                : '${pageContext.request.contextPath}/CursosController';
+
             $.ajax({
-                url: '${pageContext.request.contextPath}/CursosController',
-                type: curso.id_curso ? 'PUT' : 'POST',
+                url: url,
+                type: method,
                 contentType: 'application/json',
-                data: JSON.stringify(curso),
-                success: function() {
+                data: JSON.stringify(cursoData),
+                success: function(response) {
                     $('#cursoModal').modal('hide');
-                    $('#cursosTable').DataTable().ajax.reload();
+                    cargarCursos();
+                    limpiarFormulario();
                 },
-                error: function(xhr) {
-                    alert('Error al guardar el curso: ' + xhr.responseText);
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    alert('Error al guardar el curso. Por favor, intente nuevamente.');
                 }
             });
         }
 
         function editarCurso(id) {
+            if (!id) {
+                alert('ID de curso no válido');
+                return;
+            }
+            
             $.ajax({
                 url: '${pageContext.request.contextPath}/CursosController?id=' + id,
                 type: 'GET',
+                dataType: 'json',
                 success: function(curso) {
-                    $('#cursoId').val(curso.id_curso);
-                    $('#nombre').val(curso.nombre);
-                    $('#codigo').val(curso.codigo);
-                    $('#descripcion').val(curso.descripcion);
-                    $('#idProfesor').val(curso.idProfesor);
-                    $('#cursoModal').modal('show');
+                    if (curso) {
+                        $('#cursoId').val(curso.id_curso);
+                        $('#nombre').val(curso.nombre);
+                        $('#codigo').val(curso.codigo);
+                        $('#descripcion').val(curso.descripcion);
+                        $('#idProfesor').val(curso.idProfesor);
+                        $('#modalTitle').text('Editar Curso');
+                        $('#cursoModal').modal('show');
+                    } else {
+                        alert('No se encontró el curso');
+                    }
                 },
-                error: function(xhr) {
-                    alert('Error al cargar los datos del curso: ' + xhr.responseText);
+                error: function(xhr, status, error) {
+                    console.error('Error:', error);
+                    alert('Error al cargar los datos del curso. Por favor, intente nuevamente.');
                 }
             });
         }
 
         function eliminarCurso(id) {
+            if (!id) {
+                alert('ID de curso no válido');
+                return;
+            }
+            
             if (confirm('¿Está seguro de que desea eliminar este curso?')) {
                 $.ajax({
                     url: '${pageContext.request.contextPath}/CursosController?id=' + id,
                     type: 'DELETE',
-                    success: function() {
-                        $('#cursosTable').DataTable().ajax.reload();
+                    success: function(response) {
+                        cargarCursos();
                     },
-                    error: function(xhr) {
-                        alert('Error al eliminar el curso: ' + xhr.responseText);
+                    error: function(xhr, status, error) {
+                        console.error('Error:', error);
+                        alert('Error al eliminar el curso. Por favor, intente nuevamente.');
                     }
                 });
             }
         }
+
+        function limpiarFormulario() {
+            $('#cursoId').val('');
+            $('#nombre').val('');
+            $('#codigo').val('');
+            $('#descripcion').val('');
+            $('#idProfesor').val('');
+            $('#modalTitle').text('Nuevo Curso');
+        }
+
+        $('#cursoModal').on('hidden.bs.modal', function () {
+            limpiarFormulario();
+        });
     </script>
 </body>
 </html>
