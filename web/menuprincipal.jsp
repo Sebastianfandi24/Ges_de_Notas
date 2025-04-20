@@ -139,11 +139,18 @@
       </div>
 
       <!-- Contenido Principal -->
-      <div class="col-md-9 col-lg-10 p-0">
-        <iframe name="contentFrame"
-          src="${defaultEnlace}">
-        </iframe>
-      </div>
+      <c:choose>
+        <c:when test="${empty actividades}">
+          <div class="col-md-9 col-lg-10 d-flex align-items-center justify-content-center">
+            <h3>No tienes ninguna actividad asignada</h3>
+          </div>
+        </c:when>
+        <c:otherwise>
+          <div class="col-md-9 col-lg-10 p-0">
+            <iframe name="contentFrame" src="${defaultEnlace}"></iframe>
+          </div>
+        </c:otherwise>
+      </c:choose>
     </div>
   </div>
 
