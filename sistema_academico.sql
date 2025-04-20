@@ -192,15 +192,15 @@ INSERT INTO `usuario` (`id_usu`, `nombre`, `correo`, `contraseña`, `id_rol`, `f
 (3, 'Estudiante User', 'estudiante@example.com', '2E63A1090735F47213FEA3B974418E3E42437325F313B3D3D2F6238CC22298F9', 1, '2025-04-16 20:58:40', '2025-04-17 00:00:00');
 
 INSERT INTO `actividad` (`id_actividad`, `nombre`, `enlace`) VALUES
-(1, 'Gestionar Profesores', 'dashboard/admin/profesores.jsp'),
-(2, 'Gestionar Estudiantes', 'dashboard/admin/estudiantes.jsp'),
-(3, 'Gestionar Cursos', 'dashboard/admin/cursos.jsp'),
-(4, 'Ver Mis Cursos', 'dashboard/profesor/mis-cursos.jsp'),
-(5, 'Crear Tarea', 'dashboard/profesor/nueva-tarea.jsp'),
-(6, 'Calificar Tareas', 'dashboard/profesor/calificar-tareas.jsp'),
-(7, 'Ver Cursos Estudiante', 'dashboard/estudiante/mis-cursos.jsp'),
-(8, 'Ver Tareas Estudiante', 'dashboard/estudiante/mis-tareas.jsp'),
-(9, 'Ver Notas Estudiante', 'dashboard/estudiante/mis-notas.jsp');
+(1, 'Gestionar Profesores', 'dashboard/adminprofesores.jsp'),
+(2, 'Gestionar Estudiantes', 'dashboard/adminestudiantes.jsp'),
+(3, 'Gestionar Cursos', 'dashboard/admincursos.jsp'),
+(4, 'Ver Mis Cursos', 'dashboard/profesorcursos.jsp'),
+(5, 'Crear Tarea', 'dashboard/profesortareas.jsp'),
+(6, 'Calificar Tareas', 'dashboard/profesortareas.jsp'),
+(7, 'Ver Cursos Estudiante', 'dashboard/estudiantecursos.jsp'),
+(8, 'Ver Tareas Estudiante', 'dashboard/estudiantetareas.jsp'),
+(9, 'Ver Notas Estudiante', 'dashboard/estudiantecursos.jsp');
 
 INSERT INTO `gestion_actividades` (`id_rol`, `id_actividad`) VALUES
 (1, 7),
