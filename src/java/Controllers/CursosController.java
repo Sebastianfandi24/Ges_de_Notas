@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -20,6 +22,8 @@ import org.json.JSONObject;
  */
 @WebServlet("/CursosController/*")
 public class CursosController extends HttpServlet {
+    
+    private static final Logger logger = Logger.getLogger(CursosController.class.getName());
 
     /**
      * Maneja las solicitudes GET para obtener cursos
@@ -29,16 +33,17 @@ public class CursosController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
         
-        try (PrintWriter out = response.getWriter()) {
-            String pathInfo = request.getPathInfo();
+        try {
             String idParam = request.getParameter("id");
+            logger.info("CursosController: recibida solicitud GET. Parámetro ID: " + idParam);
             
-            if (idParam != null) {
-                // Obtener un curso específico
+            if (idParam != null && !idParam.isEmpty()) {
                 try {
                     int id = Integer.parseInt(idParam);
-                    Curso curso = obtenerCursoPorId(id);
+                    logger.info("CursosController: buscando curso con ID: " + id);
+                    Curso curso = read(id);
                     
                     if (curso != null) {
                         JSONObject jsonCurso = new JSONObject();
@@ -47,24 +52,27 @@ public class CursosController extends HttpServlet {
                         jsonCurso.put("codigo", curso.getCodigo());
                         jsonCurso.put("descripcion", curso.getDescripcion());
                         jsonCurso.put("idProfesor", curso.getIdProfesor());
-                        jsonCurso.put("profesor_nombre", curso.getNombreProfesor());
+                        jsonCurso.put("profesor_nombre", curso.getProfesor_nombre());
                         
+                        logger.info("CursosController: curso encontrado: " + jsonCurso.toString());
                         out.print(jsonCurso.toString());
                     } else {
+                        logger.warning("CursosController: curso no encontrado para ID: " + id);
                         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                         JSONObject error = new JSONObject();
                         error.put("error", "Curso no encontrado");
                         out.print(error.toString());
                     }
                 } catch (NumberFormatException e) {
+                    logger.severe("CursosController: Error al parsear ID: " + idParam + ". Error: " + e.getMessage());
                     response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     JSONObject error = new JSONObject();
-                    error.put("error", "ID de curso inválido");
+                    error.put("error", "ID inválido: " + idParam);
                     out.print(error.toString());
                 }
             } else {
-                // Obtener todos los cursos
-                List<Curso> cursos = obtenerTodosCursos();
+                logger.info("CursosController: solicitando todos los cursos");
+                List<Curso> cursos = readAll();
                 JSONArray jsonArray = new JSONArray();
                 
                 for (Curso curso : cursos) {
@@ -74,19 +82,20 @@ public class CursosController extends HttpServlet {
                     jsonCurso.put("codigo", curso.getCodigo());
                     jsonCurso.put("descripcion", curso.getDescripcion());
                     jsonCurso.put("idProfesor", curso.getIdProfesor());
-                    jsonCurso.put("profesor_nombre", curso.getNombreProfesor());
-                    jsonCurso.put("cantidadEstudiantes", curso.getCantidadEstudiantes());
-                    
+                    jsonCurso.put("profesor_nombre", curso.getProfesor_nombre());
                     jsonArray.put(jsonCurso);
                 }
                 
+                logger.info("CursosController: se encontraron " + cursos.size() + " cursos");
                 out.print(jsonArray.toString());
             }
         } catch (Exception e) {
+            logger.severe("CursosController: Error no controlado: " + e.getMessage());
+            e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             JSONObject error = new JSONObject();
             error.put("error", "Error interno del servidor: " + e.getMessage());
-            response.getWriter().print(error.toString());
+            out.print(error.toString());
         }
     }
 
@@ -98,74 +107,54 @@ public class CursosController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
         
         try {
-            String pathInfo = request.getPathInfo();
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = request.getReader().readLine()) != null) {
+                sb.append(line);
+            }
             
-            if (pathInfo == null || pathInfo.equals("/")) {
-                // Crear un nuevo curso
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = request.getReader().readLine()) != null) {
-                    sb.append(line);
-                }
-                
-                JSONObject jsonRequest = new JSONObject(sb.toString());
-                
-                // Crear objeto Curso
-                Curso curso = new Curso();
-                curso.setNombre(jsonRequest.getString("nombre"));
-                curso.setCodigo(jsonRequest.getString("codigo"));
-                curso.setDescripcion(jsonRequest.getString("descripcion"));
-                curso.setIdProfesor(jsonRequest.getInt("id_profesor"));
-                
-                // Guardar el curso
-                boolean exito = crearCurso(curso);
-                
-                if (exito) {
-                    response.setStatus(HttpServletResponse.SC_CREATED);
-                    JSONObject jsonResponse = new JSONObject();
-                    jsonResponse.put("mensaje", "Curso creado exitosamente");
-                    response.getWriter().print(jsonResponse.toString());
-                } else {
-                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    JSONObject jsonError = new JSONObject();
-                    jsonError.put("error", "Error al crear el curso");
-                    response.getWriter().print(jsonError.toString());
-                }
-            } else if (pathInfo.equals("/estudiantes")) {
-                // Asignar estudiantes a un curso
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = request.getReader().readLine()) != null) {
-                    sb.append(line);
-                }
-                
-                JSONObject jsonRequest = new JSONObject(sb.toString());
-                
-                int idCurso = jsonRequest.getInt("id_curso");
-                JSONArray estudiantesArray = jsonRequest.getJSONArray("estudiantes");
-                
-                List<Integer> estudiantesIds = new ArrayList<>();
-                for (int i = 0; i < estudiantesArray.length(); i++) {
-                    estudiantesIds.add(estudiantesArray.getInt(i));
-                }
-                
-                boolean exito = asignarEstudiantesACurso(idCurso, estudiantesIds);
-                
-                if (exito) {
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    response.getWriter().print(new JSONObject().put("mensaje", "Estudiantes asignados exitosamente").toString());
-                } else {
-                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    response.getWriter().print(new JSONObject().put("error", "Error al asignar estudiantes").toString());
-                }
+            String requestBody = sb.toString();
+            logger.info("CursosController: recibida solicitud POST con cuerpo: " + requestBody);
+            
+            JSONObject jsonRequest = new JSONObject(requestBody);
+            
+            // Crear objeto Curso
+            Curso curso = new Curso();
+            curso.setNombre(jsonRequest.getString("nombre"));
+            curso.setCodigo(jsonRequest.getString("codigo"));
+            curso.setDescripcion(jsonRequest.getString("descripcion"));
+            
+            // Usar la clave "idProfesor" en lugar de "id_profesor"
+            curso.setIdProfesor(jsonRequest.getInt("idProfesor"));
+            
+            logger.info("CursosController: intentando crear curso: " + curso.getNombre());
+            
+            // Guardar el curso
+            boolean exito = crearCurso(curso);
+            
+            if (exito) {
+                logger.info("CursosController: curso creado con éxito");
+                response.setStatus(HttpServletResponse.SC_CREATED);
+                JSONObject jsonResponse = new JSONObject();
+                jsonResponse.put("mensaje", "Curso creado exitosamente");
+                out.print(jsonResponse.toString());
+            } else {
+                logger.warning("CursosController: error al crear curso");
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                JSONObject jsonError = new JSONObject();
+                jsonError.put("error", "Error al crear el curso");
+                out.print(jsonError.toString());
             }
         } catch (Exception e) {
+            logger.severe("CursosController: Error en POST: " + e.getMessage());
+            e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             JSONObject jsonError = new JSONObject();
-            jsonError.put("error", e.getMessage());
-            response.getWriter().print(jsonError.toString());
+            jsonError.put("error", "Error: " + e.getMessage());
+            out.print(jsonError.toString());
         }
     }
 
@@ -177,54 +166,57 @@ public class CursosController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
         
         try {
-            // Obtener el ID del curso de los parámetros de la URL
             String idParam = request.getParameter("id");
+            logger.info("CursosController: recibida solicitud PUT. Parámetro ID: " + idParam);
+            
             if (idParam == null || idParam.isEmpty()) {
+                logger.warning("CursosController: ID no proporcionado en PUT");
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                JSONObject jsonError = new JSONObject();
-                jsonError.put("error", "ID de curso no proporcionado");
-                response.getWriter().print(jsonError.toString());
+                out.print(new JSONObject().put("error", "ID no proporcionado").toString());
                 return;
             }
-            
-            // Leer el cuerpo de la solicitud
+
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = request.getReader().readLine()) != null) {
                 sb.append(line);
             }
             
-            JSONObject jsonRequest = new JSONObject(sb.toString());
+            String requestBody = sb.toString();
+            logger.info("CursosController: cuerpo de la solicitud PUT: " + requestBody);
             
-            // Crear objeto Curso
+            JSONObject jsonRequest = new JSONObject(requestBody);
             Curso curso = new Curso();
             curso.setId(Integer.parseInt(idParam));
             curso.setNombre(jsonRequest.getString("nombre"));
             curso.setCodigo(jsonRequest.getString("codigo"));
             curso.setDescripcion(jsonRequest.getString("descripcion"));
-            curso.setIdProfesor(jsonRequest.getInt("id_profesor"));
+            curso.setIdProfesor(jsonRequest.getInt("idProfesor"));
             
-            // Actualizar el curso
-            boolean exito = actualizarCurso(curso);
+            logger.info("CursosController: intentando actualizar curso con ID: " + curso.getId());
             
-            if (exito) {
-                response.setStatus(HttpServletResponse.SC_OK);
-                JSONObject jsonResponse = new JSONObject();
-                jsonResponse.put("mensaje", "Curso actualizado exitosamente");
-                response.getWriter().print(jsonResponse.toString());
+            if (update(curso)) {
+                logger.info("CursosController: curso actualizado con éxito");
+                JSONObject success = new JSONObject();
+                success.put("mensaje", "Curso actualizado exitosamente");
+                out.print(success.toString());
             } else {
+                logger.warning("CursosController: error al actualizar curso con ID: " + curso.getId());
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                JSONObject jsonError = new JSONObject();
-                jsonError.put("error", "Error al actualizar el curso");
-                response.getWriter().print(jsonError.toString());
+                out.print(new JSONObject().put("error", "Error al actualizar el curso").toString());
             }
+        } catch (NumberFormatException e) {
+            logger.severe("CursosController: Error al parsear ID en PUT: " + e.getMessage());
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            out.print(new JSONObject().put("error", "ID inválido: " + e.getMessage()).toString());
         } catch (Exception e) {
+            logger.severe("CursosController: Error en PUT: " + e.getMessage());
+            e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            JSONObject jsonError = new JSONObject();
-            jsonError.put("error", e.getMessage());
-            response.getWriter().print(jsonError.toString());
+            out.print(new JSONObject().put("error", e.getMessage()).toString());
         }
     }
 
@@ -236,28 +228,39 @@ public class CursosController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        PrintWriter out = response.getWriter();
         
         try {
             String idParam = request.getParameter("id");
+            logger.info("CursosController: recibida solicitud DELETE. Parámetro ID: " + idParam);
             
-            if (idParam != null) {
-                int id = Integer.parseInt(idParam);
-                boolean exito = eliminarCurso(id);
-                
-                if (exito) {
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    response.getWriter().print(new JSONObject().put("mensaje", "Curso eliminado exitosamente").toString());
-                } else {
-                    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                    response.getWriter().print(new JSONObject().put("error", "Error al eliminar el curso").toString());
-                }
-            } else {
+            if (idParam == null || idParam.isEmpty()) {
+                logger.warning("CursosController: ID no proporcionado en DELETE");
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.getWriter().print(new JSONObject().put("error", "ID de curso no proporcionado").toString());
+                out.print(new JSONObject().put("error", "ID no proporcionado").toString());
+                return;
             }
+
+            int id = Integer.parseInt(idParam);
+            logger.info("CursosController: intentando eliminar curso con ID: " + id);
+            
+            if (delete(id)) {
+                logger.info("CursosController: curso eliminado con éxito");
+                out.print(new JSONObject().put("mensaje", "Curso eliminado exitosamente").toString());
+            } else {
+                logger.warning("CursosController: error al eliminar curso con ID: " + id);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                out.print(new JSONObject().put("error", "Error al eliminar el curso").toString());
+            }
+        } catch (NumberFormatException e) {
+            logger.severe("CursosController: Error al parsear ID en DELETE: " + e.getMessage());
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            out.print(new JSONObject().put("error", "ID inválido: " + e.getMessage()).toString());
         } catch (Exception e) {
+            logger.severe("CursosController: Error en DELETE: " + e.getMessage());
+            e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().print(new JSONObject().put("error", e.getMessage()).toString());
+            out.print(new JSONObject().put("error", e.getMessage()).toString());
         }
     }
     
@@ -269,11 +272,11 @@ public class CursosController extends HttpServlet {
         this.cursoDAO = new CursoDAO();
     }
     
-    private Curso obtenerCursoPorId(int id) {
+    private Curso read(int id) {
         return cursoDAO.read(id);
     }
     
-    private List<Curso> obtenerTodosCursos() {
+    private List<Curso> readAll() {
         return cursoDAO.readAll();
     }
     
@@ -293,11 +296,11 @@ public class CursosController extends HttpServlet {
         return cursoDAO.create(curso);
     }
     
-    private boolean actualizarCurso(Curso curso) {
+    private boolean update(Curso curso) {
         return cursoDAO.update(curso);
     }
     
-    private boolean eliminarCurso(int id) {
+    private boolean delete(int id) {
         return cursoDAO.delete(id);
     }
     

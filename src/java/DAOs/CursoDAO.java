@@ -157,18 +157,39 @@ public class CursoDAO implements CRUD<Curso> {
     
     @Override
     public boolean delete(int id) {
-        String sql = "DELETE FROM CURSO WHERE id_curso = ?";
-        
+        // Primero eliminar registros en nota_tarea antes de eliminar las tareas
+        String sqlNota = "DELETE FROM nota_tarea WHERE id_tarea IN (SELECT id_tarea FROM TAREA WHERE id_curso = ?)";
+        String sqlTarea = "DELETE FROM TAREA WHERE id_curso = ?";
+        // Luego eliminar registros en la tabla de relación curso_estudiante
+        String sqlRel = "DELETE FROM CURSO_ESTUDIANTE WHERE id_curso = ?";
+        String sqlCurso = "DELETE FROM CURSO WHERE id_curso = ?";
         try {
             conn = conexion.crearConexion();
-            ps = conn.prepareStatement(sql);
+            conn.setAutoCommit(false);
+            // Eliminar notas de tareas
+            ps = conn.prepareStatement(sqlNota);
             ps.setInt(1, id);
-            
+            ps.executeUpdate();
+            ps.close();
+            // Eliminar tareas del curso
+            ps = conn.prepareStatement(sqlTarea);
+            ps.setInt(1, id);
+            ps.executeUpdate();
+            ps.close();
+            // Eliminar relaciones curso_estudiante
+            ps = conn.prepareStatement(sqlRel);
+            ps.setInt(1, id);
+            ps.executeUpdate();
+            ps.close();
+            // Eliminar curso
+            ps = conn.prepareStatement(sqlCurso);
+            ps.setInt(1, id);
             int resultado = ps.executeUpdate();
+            conn.commit();
             return resultado > 0;
-            
         } catch (SQLException e) {
             System.out.println("Error al eliminar curso - " + e.getMessage());
+            try { if (conn != null) conn.rollback(); } catch (SQLException ex) { }
             return false;
         } finally {
             try {
