@@ -22,22 +22,26 @@
     <div class="container-fluid py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Gestión de Estudiantes</h2>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#estudianteModal">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#estudianteModal" onclick="abrirModalNuevo()">
                 <i class="fas fa-plus-circle me-2"></i> Nuevo Estudiante
             </button>
         </div>
         <!-- Tabla de Estudiantes -->
         <div class="card">
             <div class="card-body">
-                <table id="estudiantesTable" class="table table-striped table-hover">
+                <table id="estudiantesTable" class="table table-striped table-hover w-100">
                     <thead>
                         <tr>
-                            <th>ID Estudiante</th>
+                            <th>ID Est.</th>
+                            <th>ID Usu.</th>
                             <th>Nombre</th>
                             <th>Correo</th>
                             <th>Teléfono</th>
                             <th>Estado</th>
-                            <th>Promedio Académico</th>
+                            <th>Promedio</th>
+                            <th>Rol ID</th>
+                            <th>F. Creación</th>
+                            <th>Últ. Conexión</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -58,14 +62,27 @@
                     <div class="modal-body">
                         <form id="estudianteForm">
                             <input type="hidden" id="estudianteId">
+                            <input type="hidden" id="usuarioId"> <!-- Campo oculto para id_usuario -->
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label">Nombre</label>
+                                    <label class="form-label">Nombre <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="nombre" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Correo</label>
+                                    <label class="form-label">Correo <span class="text-danger">*</span></label>
                                     <input type="email" class="form-control" id="correo" required>
+                                </div>
+                            </div>
+                            <!-- Fila de Contraseña (visible) y Rol ID (oculto) -->
+                            <div class="row mb-3">
+                                <div class="col-md-6"> <!-- Contraseña VISIBLE -->
+                                    <label class="form-label">Contraseña <span id="contraseñaObligatoria" class="text-danger">*</span></label>
+                                    <input type="password" class="form-control" id="contraseña" placeholder="Dejar en blanco para no cambiar">
+                                    <small id="contraseñaHelp" class="form-text text-muted">Requerida para nuevos estudiantes.</small>
+                                </div>
+                                <div class="col-md-6" style="display: none;"> <!-- Rol ID OCULTO -->
+                                    <label class="form-label">Rol ID <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="idRol" value="1" required readonly>
                                 </div>
                             </div>
                             <div class="row mb-3">
@@ -80,20 +97,27 @@
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
+                                    <label class="form-label">Número Identificación</label>
+                                    <input type="text" class="form-control" id="numeroIdentificacion">
+                                </div>
+                                <div class="col-md-6">
                                     <label class="form-label">Estado</label>
                                     <select class="form-select" id="estado">
                                         <option value="Activo">Activo</option>
                                         <option value="Inactivo">Inactivo</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Promedio Académico</label>
-                                    <input type="number" step="0.01" class="form-control" id="promedioAcademico">
-                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Dirección</label>
-                                <textarea class="form-control" id="direccion" rows="2"></textarea>
+                            <!-- Fila con Promedio Académico (oculto) y Dirección (visible) -->
+                            <div class="row mb-3">
+                                <div class="col-md-6" style="display: none;"> <!-- Promedio OCULTO -->
+                                    <label class="form-label">Promedio Académico</label>
+                                    <input type="number" step="0.01" class="form-control" id="promedioAcademico" placeholder="(Se calcula automáticamente)" readonly>
+                                </div>
+                                <div class="col-md-6"> <!-- Dirección VISIBLE -->
+                                    <label class="form-label">Dirección</label>
+                                    <textarea class="form-control" id="direccion" rows="1"></textarea>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -113,106 +137,251 @@
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script>
+        let tablaEstudiantes;
+
         $(document).ready(function() {
-            cargarEstudiantes();
+            inicializarTabla();
         });
 
-        function cargarEstudiantes() {
-            $.ajax({
-                url: '${pageContext.request.contextPath}/EstudiantesController',
-                type: 'GET',
-                success: function(data) {
-                    const table = $('#estudiantesTable').DataTable({
-                        data: data,
-                        columns: [
-                            { data: 'id_estudiante' },
-                            { data: 'nombre' },
-                            { data: 'correo' },
-                            { data: 'telefono' },
-                            { data: 'estado' },
-                            { data: 'promedio_academico' },
-                            {
-                                data: null,
-                                render: function(data, type, row) {
-                                    return `
-                                        <div class="action-buttons">
-                                            <button class="btn btn-sm btn-info" onclick="editarEstudiante(${row.id_estudiante})" title="Editar estudiante">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="eliminarEstudiante(${row.id_estudiante})" title="Eliminar estudiante">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </div>`;
-                                }
-                            }
-                        ],
-                        language: {
-                            url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+        function inicializarTabla() {
+            if (tablaEstudiantes) {
+                tablaEstudiantes.destroy();
+            }
+
+            tablaEstudiantes = $('#estudiantesTable').DataTable({
+                ajax: {
+                    url: '${pageContext.request.contextPath}/EstudiantesController',
+                    dataSrc: function(json) {
+                        if (!Array.isArray(json)) {
+                            console.error('Datos recibidos no son un array:', json);
+                            return [];
                         }
-                    });
+                        return json.map(function(item) {
+                            // Asegurar que id_estudiante sea un número
+                            if (item.id_estudiante) {
+                                item.id_estudiante = parseInt(item.id_estudiante);
+                            }
+                            return item;
+                        });
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('Error al cargar datos:', error);
+                        alert('Error al cargar los estudiantes. Por favor, recargue la página.');
+                    }
                 },
-                error: function(xhr) {
-                    alert('Error al cargar los estudiantes: ' + xhr.responseText);
-                }
+                columns: [
+                    { data: 'id_estudiante' },
+                    { data: 'id_usuario' },
+                    { data: 'nombre' },
+                    { data: 'correo' },
+                    { data: 'telefono' },
+                    { data: 'estado' },
+                    { data: 'promedio_academico' },
+                    { data: 'id_rol' },
+                    { data: 'fecha_creacion' },
+                    { data: 'ultima_conexion' },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function(data, type, row) {
+                            if (!row || typeof row.id_estudiante === 'undefined' || row.id_estudiante === null) {
+                                console.warn('Fila sin ID de estudiante válido:', row);
+                                return '<span class="text-danger">ID inválido</span>';
+                            }
+                            const idEstudiante = parseInt(row.id_estudiante);
+                            return `
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-info" 
+                                        onclick="editarEstudiante(${idEstudiante})" 
+                                        title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-danger" 
+                                        onclick="eliminarEstudiante(${idEstudiante})" 
+                                        title="Eliminar">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>`;
+                        }
+                    }
+                ],
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+                },
+                responsive: true,
+                processing: true,
+                scrollX: true
             });
         }
 
+        function cargarEstudiantes() {
+            tablaEstudiantes.ajax.reload();
+        }
+
+        function abrirModalNuevo() {
+            $('#estudianteForm')[0].reset(); // Limpiar formulario
+            $('#estudianteId').val('');
+            $('#usuarioId').val('');
+            $('#modalTitle').text('Nuevo Estudiante');
+            $('#contraseña').attr('placeholder', 'Contraseña (requerida)').prop('required', true);
+            $('#contraseñaObligatoria').show();
+            $('#contraseñaHelp').show();
+            $('#idRol').val(1); // Rol fijo a 1
+            $('#estado').val('Activo'); // Estado activo por defecto
+        }
+
         function guardarEstudiante() {
+            const esNuevo = !$('#estudianteId').val();
+            const contraseñaInput = $('#contraseña').val();
+
+            // Validar contraseña para nuevos estudiantes
+            if (esNuevo && !contraseñaInput) {
+                alert('La contraseña es obligatoria para nuevos estudiantes.');
+                $('#contraseña').focus();
+                return;
+            }
+
             const estudiante = {
-                id_estudiante: $('#estudianteId').val(),
+                id_estudiante: $('#estudianteId').val() || null,
+                id_usuario: $('#usuarioId').val() || null,
                 nombre: $('#nombre').val(),
                 correo: $('#correo').val(),
-                telefono: $('#telefono').val(),
+                // contrasena: Se añadirá condicionalmente abajo
+                id_rol: 1, // Fijado a 1
+                fecha_nacimiento: $('#fechaNacimiento').val() || null,
+                telefono: $('#telefono').val() || null,
+                numero_identificacion: $('#numeroIdentificacion').val() || null,
                 estado: $('#estado').val(),
-                promedio_academico: $('#promedioAcademico').val(),
-                direccion: $('#direccion').val()
+                direccion: $('#direccion').val() || null
             };
 
+            // Añadir contrasena solo si no está vacía
+            if (contraseñaInput) {
+                estudiante.contrasena = contraseñaInput;
+            } else if (!esNuevo) {
+                 // Si es edición y la contraseña está vacía, NO enviar la clave
+                 // El backend interpretará esto como "no cambiar contraseña"
+                 // (Asegúrate que el backend maneje esto correctamente si es necesario)
+                 // Opcionalmente, podrías enviar null si tu backend lo prefiere:
+                 // estudiante.contrasena = null;
+            }
+
+            // Limpiar campos nulos innecesarios para la petición
+            Object.keys(estudiante).forEach(key => {
+                // No eliminar contrasena si se añadió explícitamente
+                if ((estudiante[key] === null || estudiante[key] === '') && key !== 'contrasena') {
+                    delete estudiante[key];
+                }
+            });
+
+            // Asegurarse de que id_estudiante y id_usuario no se envíen en POST
+            if (esNuevo) {
+                delete estudiante.id_estudiante;
+                delete estudiante.id_usuario;
+            }
+
+            console.log("Enviando estudiante:", JSON.stringify(estudiante)); // Log para depuración
+
             $.ajax({
-                url: '${pageContext.request.contextPath}/EstudiantesController',
-                type: estudiante.id_estudiante ? 'PUT' : 'POST',
+                url: '${pageContext.request.contextPath}/EstudiantesController' + (esNuevo ? '' : '?id=' + estudiante.id_estudiante),
+                type: esNuevo ? 'POST' : 'PUT',
                 contentType: 'application/json',
                 data: JSON.stringify(estudiante),
-                success: function() {
+                success: function(response) {
+                    console.log("Respuesta servidor:", response);
                     $('#estudianteModal').modal('hide');
-                    $('#estudiantesTable').DataTable().ajax.reload();
+                    cargarEstudiantes(); // Recargar la tabla
                 },
                 error: function(xhr) {
-                    alert('Error al guardar el estudiante: ' + xhr.responseText);
+                    console.error('Error al guardar el estudiante:', xhr);
+                    try {
+                         const errorJson = JSON.parse(xhr.responseText);
+                         alert('Error al guardar: ' + errorJson.error);
+                    } catch (e) {
+                         alert('Error al guardar el estudiante: ' + xhr.responseText);
+                    }
                 }
             });
         }
 
         function editarEstudiante(id) {
+            // Verificar que el ID sea válido
+            if (!id || isNaN(id)) {
+                console.error('ID de estudiante inválido:', id);
+                alert('Error: ID de estudiante inválido');
+                return;
+            }
+
+            console.log('Editando estudiante con ID:', id);
+            
             $.ajax({
-                url: '${pageContext.request.contextPath}/EstudiantesController?id=' + id,
+                url: '${pageContext.request.contextPath}/EstudiantesController?id=' + parseInt(id),
                 type: 'GET',
                 success: function(estudiante) {
+                    console.log('Datos del estudiante recibidos:', estudiante);
+                    $('#estudianteForm')[0].reset();
+                    $('#modalTitle').text('Editar Estudiante');
                     $('#estudianteId').val(estudiante.id_estudiante);
+                    $('#usuarioId').val(estudiante.id_usuario);
                     $('#nombre').val(estudiante.nombre);
                     $('#correo').val(estudiante.correo);
-                    $('#telefono').val(estudiante.telefono);
-                    $('#estado').val(estudiante.estado);
-                    $('#promedioAcademico').val(estudiante.promedio_academico);
-                    $('#direccion').val(estudiante.direccion);
+                    $('#contraseña').attr('placeholder', 'Dejar en blanco para no cambiar').prop('required', false);
+                    $('#contraseñaObligatoria').hide();
+                    $('#contraseñaHelp').hide();
+                    $('#idRol').val(1);
+                    $('#fechaNacimiento').val(estudiante.fecha_nacimiento || '');
+                    $('#telefono').val(estudiante.telefono || '');
+                    $('#numeroIdentificacion').val(estudiante.numero_identificacion || '');
+                    $('#estado').val(estudiante.estado || 'Activo');
+                    $('#direccion').val(estudiante.direccion || '');
                     $('#estudianteModal').modal('show');
                 },
                 error: function(xhr) {
-                    alert('Error al cargar los datos del estudiante: ' + xhr.responseText);
+                    console.error('Error al cargar datos del estudiante:', xhr.responseText);
+                    let errorMsg = 'Error al cargar los datos del estudiante';
+                    try {
+                        const errorObj = JSON.parse(xhr.responseText);
+                        if (errorObj.error) {
+                            errorMsg = errorObj.error;
+                        }
+                    } catch (e) {
+                        console.error('Error al parsear respuesta:', e);
+                    }
+                    alert(errorMsg);
                 }
             });
         }
 
         function eliminarEstudiante(id) {
-            if (confirm('¿Está seguro de que desea eliminar este estudiante?')) {
+            // Validar que el ID sea un número válido
+            if (!id || isNaN(id)) {
+                console.error('Error: ID de estudiante inválido', id);
+                alert('Error: No se puede eliminar el estudiante. ID inválido.');
+                return;
+            }
+            
+            console.log('Intentando eliminar estudiante con ID:', id);
+            
+            if (confirm('¿Está seguro de que desea eliminar este estudiante y su usuario asociado? Esta acción no se puede deshacer.')) {
                 $.ajax({
                     url: '${pageContext.request.contextPath}/EstudiantesController?id=' + id,
                     type: 'DELETE',
                     success: function() {
-                        $('#estudiantesTable').DataTable().ajax.reload();
+                        console.log('Estudiante eliminado con éxito, ID:', id);
+                        cargarEstudiantes(); // Recargar la tabla
                     },
                     error: function(xhr) {
-                        alert('Error al eliminar el estudiante: ' + xhr.responseText);
+                        console.error('Error al eliminar el estudiante:', xhr);
+                        let errorMsg = 'Error al eliminar el estudiante';
+                        try {
+                            const errorObj = JSON.parse(xhr.responseText);
+                            if (errorObj.error) {
+                                errorMsg = errorObj.error;
+                            }
+                        } catch (e) {
+                            console.error('Error al parsear respuesta:', e);
+                        }
+                        alert(errorMsg);
                     }
                 });
             }

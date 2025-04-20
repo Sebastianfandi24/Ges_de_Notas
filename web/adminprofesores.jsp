@@ -201,7 +201,7 @@
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Contraseña</label>
-                                        <input type="password" class="form-control" id="contraseña">
+                                        <input type="password" class="form-control" id="contrasena">
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -302,7 +302,7 @@
                     id_usu: $('#profesorId').val() ? $('#id_usu').val() : "",
                     nombre: $('#nombre').val(),
                     correo: $('#correo').val(),
-                    contraseña: $('#contraseña').val(), // Asegurarse de enviar la contraseña
+                    contrasena: $('#contrasena').val(), // Cambiado a 'contrasena' sin ñ
                     telefono: $('#telefono').val(),
                     grado_academico: $('#gradoAcademico').val(),
                     especializacion: $('#especializacion').val(),
@@ -363,7 +363,7 @@
                         }
                         $('#nombre').val(profesor.nombre);
                         $('#correo').val(profesor.correo);
-                        $('#contraseña').val(''); // La contraseña no se carga por seguridad
+                        $('#contrasena').val(''); // La contraseña no se carga por seguridad
                         $('#telefono').val(profesor.telefono);
                         $('#gradoAcademico').val(profesor.grado_academico);
                         $('#especializacion').val(profesor.especializacion);

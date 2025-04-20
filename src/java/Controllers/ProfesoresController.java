@@ -171,7 +171,9 @@ public class ProfesoresController extends HttpServlet {
             profesor.setCorreo(jsonRequest.getString("correo"));
 
             // Asignar la contraseña directamente sin validación estricta
-            profesor.setContraseña(jsonRequest.optString("contraseña", null));
+            String contrasenaRecibida = jsonRequest.optString("contrasena", null); // Cambiado a 'contrasena' sin ñ
+            LOGGER.info("ProfesoresController: Contraseña recibida en JSON: " + contrasenaRecibida);
+            profesor.setContraseña(contrasenaRecibida);
             LOGGER.info("ProfesoresController: Contraseña asignada directamente.");
 
             profesor.setTelefono(jsonRequest.optString("telefono", null));
@@ -183,8 +185,8 @@ public class ProfesoresController extends HttpServlet {
 
             LOGGER.info("ProfesoresController: Objeto profesor creado: " + profesor.getNombre() + " - " + profesor.getCorreo());
 
-            // Parse dates
-            String fechaNacStr = jsonRequest.optString("fecha_nacimiento", null);
+            // Parse dates (corregido para usar los nombres del frontend)
+            String fechaNacStr = jsonRequest.optString("fechaNacimiento", null);
             if (fechaNacStr != null && !fechaNacStr.isEmpty()) {
                 try {
                     LOGGER.info("ProfesoresController: Parseando fecha de nacimiento: " + fechaNacStr);
@@ -195,7 +197,7 @@ public class ProfesoresController extends HttpServlet {
                 }
             }
 
-            String fechaContratacionStr = jsonRequest.optString("fecha_contratacion", null);
+            String fechaContratacionStr = jsonRequest.optString("fechaContratacion", null);
             if (fechaContratacionStr != null && !fechaContratacionStr.isEmpty()) {
                 try {
                     LOGGER.info("ProfesoresController: Parseando fecha de contratación: " + fechaContratacionStr);
@@ -272,7 +274,7 @@ public class ProfesoresController extends HttpServlet {
             LOGGER.info("ProfesoresController: Objeto profesor creado para actualización: " + profesor.getNombre());
 
             // Parse dates
-            String fechaNacStr = jsonRequest.optString("fecha_nacimiento", null);
+            String fechaNacStr = jsonRequest.optString("fechaNacimiento", null);
             if (fechaNacStr != null && !fechaNacStr.isEmpty()) {
                 try {
                     LOGGER.info("ProfesoresController: Parseando fecha de nacimiento: " + fechaNacStr);
@@ -285,7 +287,7 @@ public class ProfesoresController extends HttpServlet {
                 LOGGER.info("ProfesoresController: Sin fecha de nacimiento");
             }
 
-            String fechaContratacionStr = jsonRequest.optString("fecha_contratacion", null);
+            String fechaContratacionStr = jsonRequest.optString("fechaContratacion", null);
             if (fechaContratacionStr != null && !fechaContratacionStr.isEmpty()) {
                 try {
                     LOGGER.info("ProfesoresController: Parseando fecha de contratación: " + fechaContratacionStr);

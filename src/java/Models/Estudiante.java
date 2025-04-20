@@ -1,6 +1,9 @@
 package Models;
 
 import java.util.Date;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import javax.xml.bind.DatatypeConverter;
 
 public class Estudiante extends Usuario {
     private int idEstudiante;
@@ -112,8 +115,25 @@ public class Estudiante extends Usuario {
         return super.getContraseña();
     }
 
+    @Override
     public void setContraseña(String contraseña) {
-        super.setContraseña(contraseña);
+        if (contraseña == null || contraseña.isEmpty()) {
+            // Si la contraseña está vacía, no la cambiamos
+            System.out.println("[Estudiante] Contraseña vacía, no se aplicará hash");
+            super.setContraseña(contraseña);
+            return;
+        }
+        try {
+            System.out.println("[Estudiante] Aplicando hash SHA-256 a la contraseña");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(contraseña.getBytes());
+            super.setContraseña(DatatypeConverter.printHexBinary(digest));
+        } catch (NoSuchAlgorithmException e) {
+            System.err.println("[Estudiante] Error al aplicar hash a la contraseña: " + e.getMessage());
+            e.printStackTrace();
+            // En caso de error, almacenamos la contraseña sin encriptar
+            super.setContraseña(contraseña);
+        }
     }
 
     public Date getFechaCreacion() {
