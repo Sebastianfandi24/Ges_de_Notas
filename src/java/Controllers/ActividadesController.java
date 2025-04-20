@@ -5,7 +5,10 @@ import Models.Actividad;
 import Models.Rol;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import jakarta.servlet.ServletException;
@@ -30,6 +33,27 @@ public class ActividadesController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        
+        // NUEVA RAMA: si se solicita obtener roles
+        if (request.getParameter("getRoles") != null) {
+            JSONArray rolesArray = new JSONArray();
+            try (Connection conn = new Models.Conexion().crearConexion();
+                 Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery("SELECT id_rol, nombre FROM rol ORDER BY id_rol")) {
+                while (rs.next()) {
+                    JSONObject role = new JSONObject();
+                    role.put("id_rol", rs.getInt("id_rol"));
+                    role.put("nombre", rs.getString("nombre"));
+                    rolesArray.put(role);
+                }
+            } catch (SQLException ex) {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.getWriter().print(new JSONObject().put("error", ex.getMessage()).toString());
+                return;
+            }
+            response.getWriter().print(rolesArray.toString());
+            return;
+        }
         
         try (PrintWriter out = response.getWriter()) {
             String idParam = request.getParameter("id");

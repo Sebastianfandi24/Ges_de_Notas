@@ -196,13 +196,42 @@
     <script>
         $(document).ready(function() {
             cargarActividades();
+            cargarRolesActividades(); // NUEVO: cargar roles disponibles
         });
+
+        function cargarRolesActividades() {
+            $.ajax({
+                url: '${pageContext.request.contextPath}/ActividadesController?getRoles=1',
+                type: 'GET',
+                success: function(data) {
+                    var $rolesSelect = $('#roles');
+                    $rolesSelect.empty();
+                    if (typeof data === "string") { data = JSON.parse(data); }
+                    $.each(data, function(i, role) {
+                        $rolesSelect.append('<option value="'+role.id_rol+'">'+role.nombre+'</option>');
+                    });
+                },
+                error: function(xhr) {
+                    alert("Error al cargar roles: " + xhr.responseText);
+                }
+            });
+        }
 
         function cargarActividades() {
             $.ajax({
                 url: '${pageContext.request.contextPath}/ActividadesController',
                 type: 'GET',
                 success: function(data) {
+                    // Nueva validación para asegurar JSON válido
+                    if (typeof data === "string") {
+                        try {
+                            data = JSON.parse(data);
+                        } catch (e) {
+                            console.error("Error al parsear JSON:", e);
+                            alert("Error al parsear respuesta JSON: " + e);
+                            return;
+                        }
+                    }
                     const table = $('#actividadesTable').DataTable({
                         data: data,
                         columns: [
