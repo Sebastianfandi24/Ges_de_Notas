@@ -141,6 +141,7 @@
                             <th>ID Actividad</th>
                             <th>Nombre</th>
                             <th>Enlace</th>
+                            <th>Roles</th> <!-- Nueva columna para roles -->
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -168,6 +169,12 @@
                             <div class="mb-3">
                                 <label class="form-label">Enlace</label>
                                 <input type="text" class="form-control" id="enlace" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Roles</label>
+                                <select multiple class="form-control" id="roles">
+                                    <!-- Opciones de roles se cargarán dinámicamente -->
+                                </select>
                             </div>
                         </form>
                     </div>
@@ -203,6 +210,12 @@
                             { data: 'nombre' },
                             { data: 'enlace' },
                             {
+                                data: 'roles',
+                                render: function(data) {
+                                    return data.map(role => role.nombre).join(', ');
+                                }
+                            },
+                            {
                                 data: null,
                                 render: function(data, type, row) {
                                     return `
@@ -232,7 +245,8 @@
             const actividad = {
                 id_actividad: $('#actividadId').val(),
                 nombre: $('#nombre').val(),
-                enlace: $('#enlace').val()
+                enlace: $('#enlace').val(),
+                roles: $('#roles').val()
             };
 
             $.ajax({
@@ -258,6 +272,7 @@
                     $('#actividadId').val(actividad.id_actividad);
                     $('#nombre').val(actividad.nombre);
                     $('#enlace').val(actividad.enlace);
+                    $('#roles').val(actividad.roles.map(role => role.id_rol));
                     $('#actividadModal').modal('show');
                 },
                 error: function(xhr) {
