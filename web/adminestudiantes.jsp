@@ -151,19 +151,7 @@
             tablaEstudiantes = $('#estudiantesTable').DataTable({
                 ajax: {
                     url: '${pageContext.request.contextPath}/EstudiantesController',
-                    dataSrc: function(json) {
-                        if (!Array.isArray(json)) {
-                            console.error('Datos recibidos no son un array:', json);
-                            return [];
-                        }
-                        return json.map(function(item) {
-                            // Asegurar que id_estudiante sea un número
-                            if (item.id_estudiante) {
-                                item.id_estudiante = parseInt(item.id_estudiante);
-                            }
-                            return item;
-                        });
-                    },
+                    dataSrc: '',
                     error: function(xhr, error, thrown) {
                         console.error('Error al cargar datos:', error);
                         alert('Error al cargar los estudiantes. Por favor, recargue la página.');
@@ -181,27 +169,17 @@
                     { data: 'fecha_creacion' },
                     { data: 'ultima_conexion' },
                     {
-                        data: null,
+                        data: 'id_estudiante',
                         orderable: false,
-                        render: function(data, type, row) {
-                            if (!row || typeof row.id_estudiante === 'undefined' || row.id_estudiante === null) {
-                                console.warn('Fila sin ID de estudiante válido:', row);
+                        render: function(idEst) {
+                            idEst = parseInt(idEst);
+                            if (!idEst || isNaN(idEst)) {
                                 return '<span class="text-danger">ID inválido</span>';
                             }
-                            const idEstudiante = parseInt(row.id_estudiante);
-                            return `
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-info" 
-                                        onclick="editarEstudiante(${idEstudiante})" 
-                                        title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-danger" 
-                                        onclick="eliminarEstudiante(${idEstudiante})" 
-                                        title="Eliminar">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </div>`;
+                            return '<div class="btn-group btn-group-sm" role="group">'
+                                + '<button type="button" class="btn btn-info btn-edit" data-id="'+idEst+'" title="Editar"><i class="fas fa-edit"></i></button>'
+                                + '<button type="button" class="btn btn-danger btn-delete" data-id="'+idEst+'" title="Eliminar"><i class="fas fa-trash-alt"></i></button>'
+                                + '</div>';
                         }
                     }
                 ],
@@ -211,6 +189,14 @@
                 responsive: true,
                 processing: true,
                 scrollX: true
+            });
+
+            // Delegación de eventos para Editar y Eliminar
+            $('#estudiantesTable tbody').off('click', '.btn-edit').on('click', '.btn-edit', function() {
+                editarEstudiante($(this).data('id'));
+            });
+            $('#estudiantesTable tbody').off('click', '.btn-delete').on('click', '.btn-delete', function() {
+                eliminarEstudiante($(this).data('id'));
             });
         }
 
