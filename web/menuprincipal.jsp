@@ -5,8 +5,8 @@
         response.sendRedirect("login.jsp");
         return;
     }
-    int userRol = (int) session.getAttribute("userRol");
 %>
+<c:set var="userRol" value="${sessionScope.userRol}" />
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -126,46 +126,11 @@
             </p>
           </div>
           <nav class="nav flex-column">
-            <% if (userRol == 3) { %>
-              <a class="nav-link" href="adminindex.jsp" target="contentFrame">
-                <i class="fas fa-tachometer-alt"></i> Dashboard
+            <c:forEach var="act" items="${actividades}">
+              <a class="nav-link" href="${act.enlace}" target="contentFrame">
+                <i class="fas fa-circle"></i> ${act.nombre}
               </a>
-              <a class="nav-link" href="adminprofesores.jsp" target="contentFrame">
-                <i class="fas fa-id-card"></i> Gestión de Profesores
-              </a>
-              <a class="nav-link" href="adminestudiantes.jsp" target="contentFrame">
-                <i class="fas fa-users"></i> Gestión de Estudiantes
-              </a>
-              <a class="nav-link" href="admincursos.jsp" target="contentFrame">
-                <i class="fas fa-book"></i> Gestión de Cursos
-              </a>
-              <a class="nav-link" href="adminactividades.jsp" target="contentFrame">
-                <i class="fas fa-list"></i> Gestión de Actividades
-              </a>
-            <% } else if (userRol == 2) { %>
-              <a class="nav-link" href="profesorindex.jsp" target="contentFrame">
-                <i class="fas fa-tachometer-alt"></i> Dashboard
-              </a>
-              <a class="nav-link" href="profesorcursos.jsp" target="contentFrame">
-                <i class="fas fa-book"></i> Mis Cursos
-              </a>
-              <a class="nav-link" href="profesortareas.jsp" target="contentFrame">
-                <i class="fas fa-tasks"></i> Gestión de Tareas
-              </a>
-              <a class="nav-link" href="profesornotas.jsp" target="contentFrame">
-                <i class="fas fa-clipboard"></i> Gestión de Notas
-              </a>
-            <% } else if (userRol == 1) { %>
-              <a class="nav-link" href="estudianteindex.jsp" target="contentFrame">
-                <i class="fas fa-tachometer-alt"></i> Dashboard
-              </a>
-              <a class="nav-link" href="estudiantecursos.jsp" target="contentFrame">
-                <i class="fas fa-book"></i> Mis Cursos
-              </a>
-              <a class="nav-link" href="estudiantetareas.jsp" target="contentFrame">
-                <i class="fas fa-tasks"></i> Mis Tareas
-              </a>
-            <% } %>
+            </c:forEach>
           </nav>
         </div>
         <a href="login.jsp?action=logout" class="btn btn-logout mt-4">
@@ -176,9 +141,7 @@
       <!-- Contenido Principal -->
       <div class="col-md-9 col-lg-10 p-0">
         <iframe name="contentFrame"
-          src="<%= userRol == 3 ? "adminindex.jsp"
-                : userRol == 2 ? "profesorindex.jsp"
-                               : "estudianteindex.jsp" %>">
+          src="${defaultEnlace}">
         </iframe>
       </div>
     </div>

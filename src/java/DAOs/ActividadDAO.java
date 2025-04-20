@@ -167,14 +167,48 @@ public class ActividadDAO {
     }
     
     public boolean eliminar(int id) throws SQLException {
-        String sql = "DELETE FROM ACTIVIDAD WHERE id_actividad = ?";
+        String sqlDeleteGestion = "DELETE FROM GESTION_ACTIVIDADES WHERE id_actividad = ?";
+        String sqlDeleteActividad = "DELETE FROM ACTIVIDAD WHERE id_actividad = ?";
         
-        try (Connection conn = conexion.crearConexion();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (Connection conn = conexion.crearConexion()) {
+            conn.setAutoCommit(false);
             
-            ps.setInt(1, id);
-            int result = ps.executeUpdate();
+            try (PreparedStatement psGestion = conn.prepareStatement(sqlDeleteGestion)) {
+                psGestion.setInt(1, id);
+                psGestion.executeUpdate();
+            }
+            
+            int result;
+            try (PreparedStatement psActividad = conn.prepareStatement(sqlDeleteActividad)) {
+                psActividad.setInt(1, id);
+                result = psActividad.executeUpdate();
+            }
+            
+            conn.commit();
             return result > 0;
+        } catch (SQLException e) {
+            throw new SQLException("Error al eliminar la actividad: " + e.getMessage());
         }
     }
+
+    public List<Actividad> obtenerPorRol(int idRol) throws SQLException {
+        List<Actividad> actividades = new ArrayList<>();
+        String sql = "SELECT a.id_actividad, a.nombre, a.enlace FROM ACTIVIDAD a " +
+                     "JOIN GESTION_ACTIVIDADES ga ON a.id_actividad = ga.id_actividad " +
+                     "WHERE ga.id_rol = ? ORDER BY a.id_actividad";
+        try (Connection conn = conexion.crearConexion();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idRol);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Actividad act = new Actividad();
+                act.setId(rs.getInt("id_actividad"));
+                act.setNombre(rs.getString("nombre"));
+                act.setEnlace(rs.getString("enlace"));
+                actividades.add(act);
+            }
+        }
+        return actividades;
+    }
+
 }

@@ -213,7 +213,7 @@
                     });
                 },
                 error: function(xhr) {
-                    alert("Error al cargar roles: " + xhr.responseText);
+                    mostrarAlerta('error', "Error al cargar roles: " + xhr.responseText);
                 }
             });
         }
@@ -274,7 +274,7 @@
                     tableActividades.ajax.reload();
                 },
                 error: function(xhr) {
-                    alert('Error al guardar la actividad: ' + xhr.responseText);
+                    mostrarAlerta('error', 'Error al guardar la actividad: ' + xhr.responseText);
                 }
             });
         }
@@ -294,24 +294,35 @@
                 error: function(xhr) {
                     var msg;
                     try { msg = JSON.parse(xhr.responseText).error; } catch(e) { msg = xhr.statusText; }
-                    alert('Error al cargar la actividad: ' + msg);
+                    mostrarAlerta('error', 'Error al cargar la actividad: ' + msg);
                 }
             });
         }
 
         function eliminarActividad(id) {
+            console.log("Eliminar actividad llamado con ID:", id); // Nuevo log para depuración
+            if (!id || isNaN(id)) {
+                mostrarAlerta('error', 'ID de actividad inválido');
+                return;
+            }
             if (confirm('¿Está seguro de que desea eliminar esta actividad?')) {
                 $.ajax({
-                    url: '${pageContext.request.contextPath}/ActividadesController?id=' + id,
-                    type: 'DELETE',
+                    url: '${pageContext.request.contextPath}/ActividadesController',
+                    type: 'POST', // usar POST en vez de DELETE
+                    data: { id: id, _method: 'DELETE' },  // enviar _method=DELETE
                     dataType: 'json',
-                    success: function() {
+                    success: function(response) {
+                        mostrarAlerta('success', 'Actividad eliminada correctamente');
                         tableActividades.ajax.reload();
                     },
                     error: function(xhr) {
                         var msg;
-                        try { msg = JSON.parse(xhr.responseText).error; } catch(e) { msg = xhr.statusText; }
-                        alert('Error al eliminar la actividad: ' + msg);
+                        try { 
+                            msg = JSON.parse(xhr.responseText).error; 
+                        } catch(e) { 
+                            msg = xhr.statusText; 
+                        }
+                        mostrarAlerta('error', 'Error al eliminar la actividad: ' + msg);
                     }
                 });
             }
@@ -325,6 +336,28 @@
             $('#roles').val([]);
             $('#modalTitle').text('Nueva Actividad');
             $('#actividadModal').modal('show');
+        }
+
+        function mostrarAlerta(tipo, mensaje) {
+            let alertClass = 'alert-info';
+            if (tipo === 'success') alertClass = 'alert-success';
+            if (tipo === 'error') alertClass = 'alert-danger';
+            
+            const alertHtml = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
+            
+            if ($('#alertContainer').length === 0) {
+                $('body').prepend('<div id="alertContainer" class="container mt-3"></div>');
+            }
+            $('#alertContainer').html(alertHtml);
+            
+            setTimeout(function() {
+                $('.alert').fadeOut('slow', function() {
+                    $(this).remove();
+                });
+            }, 3000);
         }
     </script>
 </body>

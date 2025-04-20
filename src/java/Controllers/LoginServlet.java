@@ -49,8 +49,8 @@ public class LoginServlet extends HttpServlet {
                 session.setAttribute("userNombre", usuario.getNombre());
                 session.setAttribute("userRol", usuario.getIdRol());
                 
-                // Redirigir a menuprincipal.jsp
-                response.sendRedirect(request.getContextPath() + "/menuprincipal.jsp");
+                // Redirigir a MenuController en vez de JSP
+                response.sendRedirect(request.getContextPath() + "/menu");
             } else {
                 mensaje = "Credenciales inválidas";
                 System.out.println("[LoginServlet] Error - Credenciales inválidas para el email: " + correo);

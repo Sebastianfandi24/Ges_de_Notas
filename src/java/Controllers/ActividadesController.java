@@ -120,6 +120,35 @@ public class ActividadesController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        // Si se envía _method=DELETE, procesar la eliminación desde POST
+        if ("DELETE".equalsIgnoreCase(request.getParameter("_method"))) {
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            String idParam = request.getParameter("id");
+            try (PrintWriter out = response.getWriter()) {
+                if (idParam != null) {
+                    int id = Integer.parseInt(idParam);
+                    System.out.println("ActividadesController - Intentando eliminar actividad con id: " + id); // Nuevo log
+                    boolean exito = eliminarActividad(id);
+                    System.out.println("ActividadesController - Resultado de eliminarActividad: " + exito); // Nuevo log
+                    if (exito) {
+                        response.setStatus(HttpServletResponse.SC_OK);
+                        out.print(new JSONObject().put("mensaje", "Actividad eliminada exitosamente").toString());
+                    } else {
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        out.print(new JSONObject().put("error", "Error al eliminar la actividad").toString());
+                    }
+                } else {
+                    response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    out.print(new JSONObject().put("error", "ID de actividad no proporcionado").toString());
+                }
+            } catch (Exception e) {
+                System.out.println("ActividadesController - Excepción en eliminación: " + e.getMessage()); // Nuevo log
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.getWriter().print(new JSONObject().put("error", e.getMessage()).toString());
+            }
+            return;
+        }
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         

@@ -192,17 +192,17 @@ INSERT INTO `usuario` (`id_usu`, `nombre`, `correo`, `contraseña`, `id_rol`, `f
 (3, 'Estudiante User', 'estudiante@example.com', '2E63A1090735F47213FEA3B974418E3E42437325F313B3D3D2F6238CC22298F9', 1, '2025-04-16 20:58:40', '2025-04-17 00:00:00');
 
 INSERT INTO `actividad` (`id_actividad`, `nombre`, `enlace`) VALUES
-(1, 'Gestionar Profesores', 'adminprofesores.jsp'),
-(2, 'Gestionar Estudiantes', 'adminestudiantes.jsp'),
-(3, 'Gestionar Cursos', 'admincursos.jsp'),
-(4, 'Gestion de Actividades', 'adminactividades.jsp'),
-(5, 'Dashboard_admin', 'adminindex.jsp'),
-(6, 'Dashboard_profesor', 'profesorindex.jsp'),
-(7, 'Mis Cursos_profesor', 'profesorcursos.jsp'),
+(1, 'Dashboard', 'adminindex.jsp'),
+(2, 'Gestionar Profesores', 'adminprofesores.jsp'),
+(3, 'Gestionar Estudiantes', 'adminestudiantes.jsp'),
+(4, 'Gestionar Cursos', 'admincursos.jsp'),
+(5, 'Gestion de Actividades', 'adminactividades.jsp'),
+(6, 'Dashboard', 'profesorindex.jsp'),
+(7, 'Mis Cursos', 'profesorcursos.jsp'),
 (8, 'Gestion de Tareas', 'profesortareas.jsp'),
 (9, 'Gestion de Notas', 'profesornotas.jsp'),
-(10, 'Dashboard_estudiante', 'estudianteindex.jsp'),
-(11, 'Mis Cursos_estudiante', 'estudiantecursos.jsp'),
+(10, 'Dashboard', 'estudianteindex.jsp'),
+(11, 'Mis Cursos', 'estudiantecursos.jsp'),
 (12, 'Mis Tareas', 'estudiantetareas.jsp');
 
 INSERT INTO `gestion_actividades` (`id_rol`, `id_actividad`) VALUES
