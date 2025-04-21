@@ -7,6 +7,7 @@
     }
 %>
 <c:set var="userRol" value="${sessionScope.userRol}" />
+<c:set var="userNombre" value="${sessionScope.userNombre}" />
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -115,6 +116,7 @@
         <div>
           <div class="sidebar-header">
             <h4>Sistema<br>Académico</h4>
+            <p><i class="fas fa-user"></i> ${userNombre}</p>
             <p><i class="fas fa-user-circle"></i>
               Rol: 
               <c:choose>
