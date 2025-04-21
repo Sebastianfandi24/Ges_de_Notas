@@ -11,6 +11,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -33,6 +36,39 @@ public class ActividadesController extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
+        
+        // NUEVA FUNCIÓN: obtener JSPs nuevos no registrados
+        if (request.getParameter("getNewJsps") != null) {
+            JSONArray jspsArray = new JSONArray();
+            try {
+                // Obtener enlaces existentes de actividades
+                List<Actividad> actividades = obtenerTodasActividades();
+                Set<String> existentes = actividades.stream()
+                    .map(Actividad::getEnlace)
+                    .collect(Collectors.toSet());
+                // Listar JSPs del directorio raíz
+                ServletContext context = getServletContext();
+                Set<String> paths = context.getResourcePaths("/");
+                for (String path : paths) {
+                    if (path.endsWith(".jsp")) {
+                        String jsp = path.substring(1); // quitar '/'
+                        // excluir vistas de login, menú e index
+                        if (jsp.equals("login.jsp") || jsp.equals("menuprincipal.jsp") || jsp.equals("index.jsp")) {
+                            continue;
+                        }
+                        if (!existentes.contains(jsp)) {
+                            jspsArray.put(jsp);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.getWriter().print(new JSONObject().put("error", e.getMessage()).toString());
+                return;
+            }
+            response.getWriter().print(jspsArray.toString());
+            return;
+        }
         
         // NUEVA RAMA: si se solicita obtener roles
         if (request.getParameter("getRoles") != null) {

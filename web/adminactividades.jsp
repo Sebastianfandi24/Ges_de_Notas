@@ -168,7 +168,9 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Enlace</label>
-                                <input type="text" class="form-control" id="enlace" required>
+                                <select class="form-control" id="enlace" required>
+                                    <!-- Opciones de JSP nuevos se cargarán dinámicamente -->
+                                </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Roles</label>
@@ -197,7 +199,8 @@
         var tableActividades;
         $(document).ready(function() {
             initActividadesTable();
-            cargarRolesActividades(); // NUEVO: cargar roles disponibles
+            cargarRolesActividades(); // cargar roles disponibles
+            cargarJspsNuevos(); // cargar JSPs nuevos disponibles
         });
 
         function cargarRolesActividades() {
@@ -214,6 +217,28 @@
                 },
                 error: function(xhr) {
                     mostrarAlerta('error', "Error al cargar roles: " + xhr.responseText);
+                }
+            });
+        }
+
+        function cargarJspsNuevos() {
+            $.ajax({
+                url: '${pageContext.request.contextPath}/ActividadesController?getNewJsps=1',
+                type: 'GET',
+                success: function(data) {
+                    var $select = $('#enlace');
+                    $select.empty();
+                    if (typeof data === 'string') data = JSON.parse(data);
+                    if (!data.length) {
+                        $select.append('<option disabled>No hay nuevos enlaces</option>');
+                    } else {
+                        $.each(data, function(i, jsp) {
+                            $select.append('<option value="'+jsp+'">'+jsp+'</option>');
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    mostrarAlerta('error', 'Error al cargar enlaces: ' + xhr.responseText);
                 }
             });
         }
@@ -332,8 +357,8 @@
         function abrirNuevaActividad() {
             $('#actividadId').val('');
             $('#nombre').val('');
-            $('#enlace').val('');
             $('#roles').val([]);
+            cargarJspsNuevos(); // refrescar lista de JSPs en cada nuevo formulario
             $('#modalTitle').text('Nueva Actividad');
             $('#actividadModal').modal('show');
         }
