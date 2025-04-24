@@ -221,7 +221,7 @@
             });
         }
 
-        function cargarJspsNuevos() {
+        function cargarJspsNuevos(selectedValue, callback) {
             $.ajax({
                 url: '${pageContext.request.contextPath}/ActividadesController?getNewJsps=1',
                 type: 'GET',
@@ -233,9 +233,18 @@
                         $select.append('<option disabled>No hay nuevos enlaces</option>');
                     } else {
                         $.each(data, function(i, jsp) {
-                            $select.append('<option value="'+jsp+'">'+jsp+'</option>');
+                            $select.append('<option value="' + jsp + '">' + jsp + '</option>');
                         });
                     }
+                    // incluir y seleccionar el enlace actual si no está en la lista
+                    if (selectedValue) {
+                        if (!$select.find('option[value="' + selectedValue + '"]').length) {
+                            $select.prepend('<option value="' + selectedValue + '">' + selectedValue + '</option>');
+                        }
+                        $select.val(selectedValue);
+                    }
+                    // llamada al callback si existe
+                    if (callback) callback();
                 },
                 error: function(xhr) {
                     mostrarAlerta('error', 'Error al cargar enlaces: ' + xhr.responseText);
@@ -312,9 +321,12 @@
                 success: function(actividad) {
                     $('#actividadId').val(actividad.id_actividad);
                     $('#nombre').val(actividad.nombre);
-                    $('#enlace').val(actividad.enlace);
-                    $('#roles').val(actividad.roles.map(function(r) { return r.id_rol; }));
-                    $('#actividadModal').modal('show');
+                    $('#modalTitle').text('Editar Actividad');
+                    // cargar enlaces y luego preseleccionar roles y mostrar modal
+                    cargarJspsNuevos(actividad.enlace, function() {
+                        $('#roles').val(actividad.roles.map(function(r) { return r.id_rol; }));
+                        $('#actividadModal').modal('show');
+                    });
                 },
                 error: function(xhr) {
                     var msg;
