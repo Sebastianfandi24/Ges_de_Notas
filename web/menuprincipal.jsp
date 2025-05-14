@@ -112,8 +112,7 @@
 <body>
   <div class="container-fluid">
     <div class="row">
-      <!-- Sidebar -->
-      <div class="col-md-3 col-lg-2 sidebar">
+      <!-- Sidebar -->      <div class="col-md-3 col-lg-2 sidebar">
         <div>
           <div class="sidebar-header">
             <h4>Sistema<br>Académico</h4>
@@ -127,8 +126,10 @@
                 <c:otherwise>Desconocido</c:otherwise>
               </c:choose>
             </p>
-          </div>
-          <nav class="nav flex-column">
+          </div>          <nav class="nav flex-column">
+            <a class="nav-link" href="${pageContext.request.contextPath}/perfil" target="contentFrame">
+              <i class="fas fa-user-edit"></i> Mi Perfil
+            </a>
             <c:forEach var="act" items="${actividades}">
               <c:choose>
                 <c:when test="${userRol == 2 and fn:endsWith(act.enlace,'profesorcursos.jsp')}">

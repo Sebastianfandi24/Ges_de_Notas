@@ -14,6 +14,7 @@ import java.io.IOException;
 
 @WebFilter(filterName = "SessionFilter", urlPatterns = {
     "/menu",
+    "/perfil",
     "/RolesController",
     "/ProfesoresController",
     "/ProfesoresController/*",

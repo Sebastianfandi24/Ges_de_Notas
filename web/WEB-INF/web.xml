@@ -8,11 +8,10 @@
     <filter>
         <filter-name>SessionFilter</filter-name>
         <filter-class>Filters.SessionFilter</filter-class>
-    </filter>
-    
-    <filter-mapping>
+    </filter>        <filter-mapping>
         <filter-name>SessionFilter</filter-name>
         <url-pattern>/menu</url-pattern>
+        <url-pattern>/perfil</url-pattern>
         <url-pattern>/RolesController</url-pattern>
         <url-pattern>/ProfesoresController</url-pattern>
         <url-pattern>/ProfesoresController/*</url-pattern>
