@@ -64,19 +64,33 @@ public class LoginServlet extends HttpServlet {
             request.setAttribute("error", mensaje);
             request.getRequestDispatcher("/login.jsp").forward(request, response);
         }
-    }
-
-    @Override
+    }    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String action = request.getParameter("action");
         
         if ("logout".equals(action)) {
+            // Imprimir para depuración que se está cerrando la sesión
             HttpSession session = request.getSession(false);
             if (session != null) {
                 System.out.println("[LoginServlet] Cerrando sesión - Usuario: " + session.getAttribute("userNombre"));
+                
+                // Invalidar la sesión para eliminar todos los atributos
                 session.invalidate();
+                
+                // Crear una nueva sesión sin atributos para asegurarse
+                session = request.getSession(true);
+                session.setMaxInactiveInterval(1);  // Establecer tiempo muy corto
+                session.invalidate();  // Invalidar inmediatamente
             }
+            
+            // Enviar cabeceras para evitar caché
+            response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+            response.setHeader("Pragma", "no-cache");
+            response.setDateHeader("Expires", 0);
+            
+            // Redirigir a login
+            System.out.println("[LoginServlet] Sesión cerrada correctamente, redirigiendo a login");
             response.sendRedirect(request.getContextPath() + "/login.jsp");
         } else {
             response.sendRedirect(request.getContextPath() + "/login.jsp");

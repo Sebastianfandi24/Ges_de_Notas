@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"
+         version="5.0">
+    
+    <!-- Configuración del filtro de sesión -->
+    <filter>
+        <filter-name>SessionFilter</filter-name>
+        <filter-class>Filters.SessionFilter</filter-class>
+    </filter>
+    
+    <filter-mapping>
+        <filter-name>SessionFilter</filter-name>
+        <url-pattern>/menu</url-pattern>
+        <url-pattern>/RolesController</url-pattern>
+        <url-pattern>/ProfesoresController</url-pattern>
+        <url-pattern>/ProfesoresController/*</url-pattern>
+        <url-pattern>/profesor/*</url-pattern>
+        <url-pattern>/estudiante/*</url-pattern>
+        <url-pattern>/EstudiantesController</url-pattern>
+        <url-pattern>/CursosController/*</url-pattern>
+        <url-pattern>/ActividadesController</url-pattern>
+        <url-pattern>/api/admin/*</url-pattern>
+    </filter-mapping>
+    
+    <!-- Configuración de seguridad para sesiones -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+        <cookie-config>
+            <http-only>true</http-only> 
+            <secure>false</secure> <!-- Cambiar a true en producción con HTTPS -->
+        </cookie-config>
+        <tracking-mode>COOKIE</tracking-mode> 
+    </session-config>
+    
+    <!-- Página de bienvenida -->
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+    
+</web-app>

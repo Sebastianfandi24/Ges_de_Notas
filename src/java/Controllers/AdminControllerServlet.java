@@ -19,22 +19,34 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.logging.Logger;
 
 @WebServlet(name = "AdminControllerServlet", urlPatterns = {"/api/admin/*"})
 public class AdminControllerServlet extends HttpServlet {
     
-    private final ProfesorDAO profesorDAO;
-    private final EstudianteDAO estudianteDAO;
-    private final CursoDAO cursoDAO;
+    private ProfesorDAO profesorDAO;
+    private EstudianteDAO estudianteDAO;
+    private CursoDAO cursoDAO;
     private final Gson gson;
     private final SimpleDateFormat dateFormat;
+    private static final Logger logger = Logger.getLogger(AdminControllerServlet.class.getName());
     
     public AdminControllerServlet() {
-        this.profesorDAO = new ProfesorDAO();
-        this.estudianteDAO = new EstudianteDAO();
-        this.cursoDAO = new CursoDAO();
         this.gson = new Gson();
         this.dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    }
+    
+    @Override
+    public void init() throws ServletException {
+        try {
+            this.profesorDAO = new ProfesorDAO();
+            this.estudianteDAO = new EstudianteDAO();
+            this.cursoDAO = new CursoDAO();
+            logger.info("AdminControllerServlet: DAOs inicializados correctamente");
+        } catch (Exception e) {
+            logger.severe("AdminControllerServlet: Error al inicializar DAOs: " + e.getMessage());
+            throw new ServletException("Error al inicializar DAOs", e);
+        }
     }
     
     @Override

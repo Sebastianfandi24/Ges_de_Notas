@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%
     if (session == null || session.getAttribute("userRol") == null) {
         response.sendRedirect("login.jsp");
@@ -129,13 +130,27 @@
           </div>
           <nav class="nav flex-column">
             <c:forEach var="act" items="${actividades}">
-              <a class="nav-link" href="${act.enlace}" target="contentFrame">
-                <i class="fas fa-circle"></i> ${act.nombre}
-              </a>
+              <c:choose>
+                <c:when test="${userRol == 2 and fn:endsWith(act.enlace,'profesorcursos.jsp')}">
+                  <a class="nav-link" href="${pageContext.request.contextPath}/profesor/cursos" target="contentFrame">
+                    <i class="fas fa-circle"></i> ${act.nombre}
+                  </a>
+                </c:when>
+                <c:when test="${userRol == 1 and fn:endsWith(act.enlace,'estudiantecursos.jsp')}">
+                  <a class="nav-link" href="${pageContext.request.contextPath}/estudiante/mis-cursos" target="contentFrame">
+                    <i class="fas fa-circle"></i> ${act.nombre}
+                  </a>
+                </c:when>
+                <c:otherwise>
+                  <a class="nav-link" href="${act.enlace}" target="contentFrame">
+                    <i class="fas fa-circle"></i> ${act.nombre}
+                  </a>
+                </c:otherwise>
+              </c:choose>
             </c:forEach>
           </nav>
         </div>
-        <a href="login.jsp?action=logout" class="btn btn-logout mt-4">
+        <a href="${pageContext.request.contextPath}/login?action=logout" class="btn btn-logout mt-4">
           <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
         </a>
       </div>
@@ -149,7 +164,7 @@
         </c:when>
         <c:otherwise>
           <div class="col-md-9 col-lg-10 p-0">
-            <iframe name="contentFrame" src="${defaultEnlace}"></iframe>
+            <iframe name="contentFrame" src="${defaultEnlace}" title="Contenido del menú"></iframe>
           </div>
         </c:otherwise>
       </c:choose>

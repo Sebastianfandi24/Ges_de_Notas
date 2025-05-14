@@ -1,4 +1,4 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="true" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -42,185 +42,112 @@
 </head>
 <body>
   <div class="container-fluid py-4">
-    <!-- Título y selector de curso -->
+    <!-- Título y selector de curso dinámico -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h2 class="m-0">Gestión de Calificaciones</h2>
-      <select class="form-select w-auto">
-        <option selected>Seleccionar curso</option>
-        <!-- Más opciones de curso -->
+      <select id="cursoSelect" class="form-select w-auto">
+        <option value="">Cargando cursos...</option>
       </select>
     </div>
 
-    <!-- Tarjeta principal de calificaciones -->
-    <div class="card mb-4 shadow-sm">
+    <!-- Tabla de calificaciones dinámica -->
+    <div id="notasContainer" class="card mb-4 shadow-sm" style="display:none;">
       <div class="card-header bg-primary text-white">
-        <i class="bi bi-table"></i> Matemáticas Avanzadas – Calificaciones
+        <i class="bi bi-table"></i> <span id="cursoTitulo"></span> – Calificaciones
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table mb-0">
-            <thead>
-              <tr>
-                <th>Estudiante</th>
-                <th class="text-center" colspan="3">Actividades</th>
-                <th>Promedio</th>
-              </tr>
-              <tr>
-                <th></th>
-                <th>Matrices y determinantes</th>
-                <th>Ecuaciones diferenciales</th>
-                <th>Examen parcial</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Ana Martínez</td>
-                <td>8.5</td>
-                <td>9.0</td>
-                <td>9.5</td>
-                <td>9.0</td>
-              </tr>
-              <tr>
-                <td>Carlos Sánchez</td>
-                <td>7.5</td>
-                <td>8.0</td>
-                <td>7.0</td>
-                <td>7.5</td>
-              </tr>
-              <tr>
-                <td>Laura Gómez</td>
-                <td>9.0</td>
-                <td>8.5</td>
-                <td>8.0</td>
-                <td>8.5</td>
-              </tr>
-              <tr>
-                <td>Roberto Fernández</td>
-                <td>6.5</td>
-                <td>7.0</td>
-                <td>7.5</td>
-                <td>7.0</td>
-              </tr>
-              <tr>
-                <td>Elena Pérez</td>
-                <td>8.0</td>
-                <td>8.5</td>
-                <td>9.0</td>
-                <td>8.5</td>
-              </tr>
-            </tbody>
-            <tfoot class="table-light">
-              <tr>
-                <th>Promedio actividad</th>
-                <th>7.9</th>
-                <th>8.2</th>
-                <th>8.2</th>
-                <th>8.1</th>
-              </tr>
-            </tfoot>
+          <table id="notasTable" class="table mb-0">
+            <thead id="notasThead"></thead>
+            <tbody id="notasTbody"></tbody>
+            <tfoot id="notasTfoot"></tfoot>
           </table>
-        </div>
-        <div class="p-3 bg-white border-top d-flex">
-          <button class="btn btn-outline-primary me-2">
-            <i class="bi bi-file-earmark-excel"></i> Exportar a Excel
-          </button>
-          <button class="btn btn-outline-info">
-            <i class="bi bi-bar-chart-line"></i> Ver estadísticas
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Estadísticas y Distribución -->
-    <div class="row g-4">
-      <!-- Estadísticas del curso -->
-      <div class="col-md-6">
-        <div class="card shadow-sm">
-          <div class="card-header bg-primary text-white">
-            Estadísticas del curso
-          </div>
-          <ul class="list-group list-group-flush">
-            <li class="list-group-item d-flex justify-content-between">
-              <span>Promedio general:</span>
-              <strong>8.1 / 10</strong>
-            </li>
-            <li class="list-group-item d-flex justify-content-between">
-              <span>Calificación más alta:</span>
-              <strong>9.5 / 10</strong>
-            </li>
-            <li class="list-group-item d-flex justify-content-between">
-              <span>Calificación más baja:</span>
-              <strong>6.5 / 10</strong>
-            </li>
-            <li class="list-group-item d-flex justify-content-between">
-              <span>Estudiantes aprobados:</span>
-              <strong>15 / 15 (100%)</strong>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Distribución de calificaciones -->
-      <div class="col-md-6">
-        <div class="card shadow-sm">
-          <div class="card-header bg-primary text-white">
-            Distribución de calificaciones
-          </div>
-          <div class="card-body">
-            <!-- 9–10 -->
-            <div class="mb-3">
-              <div class="d-flex justify-content-between">
-                <small>9–10</small>
-                <small>30%</small>
-              </div>
-              <div class="progress">
-                <div class="progress-bar bg-success" role="progressbar"
-                     style="width: 30%;" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100">
-                </div>
-              </div>
-            </div>
-            <!-- 8–9 -->
-            <div class="mb-3">
-              <div class="d-flex justify-content-between">
-                <small>8–9</small>
-                <small>40%</small>
-              </div>
-              <div class="progress">
-                <div class="progress-bar bg-primary" role="progressbar"
-                     style="width: 40%;" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100">
-                </div>
-              </div>
-            </div>
-            <!-- 7–8 -->
-            <div class="mb-3">
-              <div class="d-flex justify-content-between">
-                <small>7–8</small>
-                <small>20%</small>
-              </div>
-              <div class="progress">
-                <div class="progress-bar bg-info" role="progressbar"
-                     style="width: 20%;" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">
-                </div>
-              </div>
-            </div>
-            <!-- 6–7 -->
-            <div class="mb-0">
-              <div class="d-flex justify-content-between">
-                <small>6–7</small>
-                <small>10%</small>
-              </div>
-              <div class="progress">
-                <div class="progress-bar bg-warning" role="progressbar"
-                     style="width: 10%;" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100">
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Scripts -->
+  <script>
+    const apiBase = '<%= request.getContextPath() %>/profesor';
+    async function fetchJson(url) {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(resp.statusText);
+      return resp.json();
+    }
+
+    // Obtener parámetro de consulta id_curso
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedCurso = urlParams.get('id_curso');
+    fetchJson(`${apiBase}/cursos/mis-cursos?id_profesor=1`)
+      .then(cursos => {
+        const sel = document.getElementById('cursoSelect');
+        sel.innerHTML = '<option value="">-- Seleccione un curso --</option>';
+        cursos.forEach(c => {
+          const opt = new Option(c.nombre, c.id_curso);
+          if (c.id_curso == selectedCurso) opt.selected = true;
+          sel.add(opt);
+        });
+        // Si viene id_curso en la URL, disparar evento change
+        if (selectedCurso) sel.dispatchEvent(new Event('change'));
+      }).catch(console.error);
+
+    document.getElementById('cursoSelect').addEventListener('change', async e => {
+      const idCurso = e.target.value;
+      if (!idCurso) return;
+      try {
+        // Nombre del curso
+        const curso = await fetchJson(apiBase + '/cursos/' + idCurso);
+        document.getElementById('cursoTitulo').textContent = curso.nombre;
+
+        // Datos de tareas y estudiantes
+        const tareas = await fetchJson(apiBase + '/tareas/por-curso?id_curso=' + idCurso);
+        const estudiantes = await fetchJson(apiBase + '/curso-estudiantes?id_curso=' + idCurso);
+        // Notas por tarea
+        const notesData = {};
+        for (const t of tareas) {
+          notesData[t.id_tarea] = await fetchJson(apiBase + '/notas/por-tarea?id_tarea=' + t.id_tarea);
+        }
+
+        // Construir encabezado
+        const thead1 = document.getElementById('notasThead');
+        thead1.innerHTML = `
+          <tr><th>Estudiante</th>${tareas.map(t => `<th>${t.titulo}</th>`).join('')}<th>Promedio</th></tr>
+        `;
+
+        // Construir cuerpo con promedio por estudiante
+        const tbody = document.getElementById('notasTbody');
+        tbody.innerHTML = estudiantes.map(est => {
+          let sum=0, count=0;
+          const cols = tareas.map(t => {
+            const rec = notesData[t.id_tarea].find(n => n.id_estudiante==est.id_estudiante);
+            if (rec) { sum+=rec.nota; count++; return `<td>${rec.nota.toFixed(1)}</td>`; }
+            return '<td>-</td>';
+          }).join('');
+          const avgStu = count? (sum/count).toFixed(1) : '-';
+          return `<tr><td>${est.nombre}</td>${cols}<td>${avgStu}</td></tr>`;
+        }).join('');
+
+        // Construir pie con promedio por actividad y total
+        const tfoot = document.getElementById('notasTfoot');
+        const avgTasks = tareas.map(t => {
+          const list = notesData[t.id_tarea];
+          const total = estudiantes.length;
+          const sumNotes = list.reduce((a,n)=>a+Number(n.nota),0);
+          return total? (sumNotes/total).toFixed(1) : '-';
+        });
+        const overall = avgTasks.filter(v=>v!=='-');
+        const weighted = overall.length? (overall.reduce((a,v)=>a+Number(v),0)/overall.length).toFixed(1): '-';
+        tfoot.innerHTML = `
+          <tr><th>Promedio actividad</th>${avgTasks.map(v=>`<th>${v}</th>`).join('')}<th>${weighted}</th></tr>
+        `;
+
+        document.getElementById('notasContainer').style.display = '';
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  </script>
 
   <!-- Bootstrap Bundle JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

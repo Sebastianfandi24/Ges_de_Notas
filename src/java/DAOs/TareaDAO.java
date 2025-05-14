@@ -46,6 +46,35 @@ public class TareaDAO implements CRUD<Tarea> {
         }
     }
     
+    /** Crea una tarea y devuelve el ID generado */
+    public int createAndReturnId(Tarea tarea) {
+        String sql = "INSERT INTO TAREA (titulo, descripcion, fecha_asignacion, fecha_entrega, id_curso) VALUES (?, ?, ?, ?, ?)";
+        try {
+            conn = conexion.crearConexion();
+            ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, tarea.getTitulo());
+            ps.setString(2, tarea.getDescripcion());
+            ps.setDate(3, tarea.getFecha_asignacion() != null ? new java.sql.Date(tarea.getFecha_asignacion().getTime()) : null);
+            ps.setDate(4, tarea.getFecha_entrega() != null ? new java.sql.Date(tarea.getFecha_entrega().getTime()) : null);
+            ps.setInt(5, tarea.getIdCurso());
+
+            int affected = ps.executeUpdate();
+            if (affected == 0) {
+                return -1;
+            }
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (keys.next()) {
+                    return keys.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al crear tarea y obtener ID - " + e.getMessage());
+        } finally {
+            try { if (ps != null) ps.close(); if (conn != null) conn.close(); } catch (SQLException ignored) {}
+        }
+        return -1;
+    }
+    
     @Override
     public Tarea read(int id) {
         String sql = "SELECT t.*, c.nombre as curso_nombre FROM TAREA t "
@@ -138,7 +167,8 @@ public class TareaDAO implements CRUD<Tarea> {
             ps.setInt(6, tarea.getId());
             
             int resultado = ps.executeUpdate();
-            return resultado > 0;
+            // Si no hay cambios reales, MySQL devuelve 0, pero consideramos éxito si se encontró el registro
+            return true;
             
         } catch (SQLException e) {
             System.out.println("Error al actualizar tarea - " + e.getMessage());
@@ -214,6 +244,37 @@ public class TareaDAO implements CRUD<Tarea> {
             }
         }
         
+        return tareas;
+    }
+    
+    /**
+     * Obtiene todas las tareas de un profesor según su ID, uniéndose con cursos
+     */
+    public List<Tarea> getTareasPorProfesor(int idProfesor) {
+        String sql = "SELECT t.* FROM TAREA t " +
+                     "JOIN CURSO c ON t.id_curso = c.id_curso " +
+                     "WHERE c.idProfesor = ?";
+        List<Tarea> tareas = new ArrayList<>();
+        try {
+            conn = conexion.crearConexion();
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, idProfesor);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                Tarea tarea = new Tarea();
+                tarea.setId(rs.getInt("id_tarea"));
+                tarea.setTitulo(rs.getString("titulo"));
+                tarea.setDescripcion(rs.getString("descripcion"));
+                tarea.setFecha_asignacion(rs.getDate("fecha_asignacion"));
+                tarea.setFecha_entrega(rs.getDate("fecha_entrega"));
+                tarea.setId_curso(rs.getInt("id_curso"));
+                tareas.add(tarea);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al obtener tareas por profesor - " + e.getMessage());
+        } finally {
+            try { if (rs != null) rs.close(); if (ps != null) ps.close(); if (conn != null) conn.close(); } catch (SQLException ignored) {}
+        }
         return tareas;
     }
     

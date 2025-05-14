@@ -1,4 +1,5 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -45,9 +46,83 @@
       height: 10px;
       margin-bottom: .75rem;
     }
+    .debug-panel {
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      border-radius: .25rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
   </style>
 </head>
 <body>
+  <%-- Debug del servidor --%>
+  <%
+    System.out.println("====================== DEBUG PROFESORCURSOS.JSP ======================");
+    System.out.println("[profesorcursos.jsp] Iniciando renderizado de página");
+    System.out.println("[profesorcursos.jsp] cursosInfo: " + (request.getAttribute("cursosInfo") != null ? "presente" : "ausente"));
+    System.out.println("[profesorcursos.jsp] cursosInfoDirectos: " + (request.getAttribute("cursosInfoDirectos") != null ? "presente" : "ausente"));
+    
+    if (request.getAttribute("cursosInfo") != null) {
+      java.util.List cursos = (java.util.List) request.getAttribute("cursosInfo");
+      System.out.println("[profesorcursos.jsp] Número de cursos (DAO): " + cursos.size());
+      for (Object obj : cursos) {
+        Models.CursoInfo info = (Models.CursoInfo) obj;
+        System.out.println("[profesorcursos.jsp] Curso (DAO): " + info.getCurso().getNombre() + " (ID: " + info.getCurso().getId() + ")");
+      }
+    }
+    
+    if (request.getAttribute("cursosInfoDirectos") != null) {
+      java.util.List cursos = (java.util.List) request.getAttribute("cursosInfoDirectos");
+      System.out.println("[profesorcursos.jsp] Número de cursos (Directo): " + cursos.size());
+      for (Object obj : cursos) {
+        Models.CursoInfo info = (Models.CursoInfo) obj;
+        System.out.println("[profesorcursos.jsp] Curso (Directo): " + info.getCurso().getNombre() + " (ID: " + info.getCurso().getId() + ")");
+      }
+    }
+    System.out.println("=====================================================================");
+  %>
+  
+  <!-- Panel de depuración -->
+  <div class="container-fluid py-3 debug-panel">
+    <h5>Panel de Depuración</h5>
+    <div>
+      <strong>Estado del atributo 'cursosInfo' (DAO):</strong> 
+      <c:choose>
+        <c:when test="${not empty cursosInfo}">
+          <span class="badge bg-success">Presente (${cursosInfo.size()} cursos)</span>
+        </c:when>
+        <c:otherwise>
+          <span class="badge bg-danger">Ausente</span>
+        </c:otherwise>
+      </c:choose>
+    </div>
+    <div class="mt-2">
+      <strong>Estado del atributo 'cursosInfoDirectos' (Directo):</strong> 
+      <c:choose>
+        <c:when test="${not empty cursosInfoDirectos}">
+          <span class="badge bg-success">Presente (${cursosInfoDirectos.size()} cursos)</span>
+        </c:when>
+        <c:otherwise>
+          <span class="badge bg-danger">Ausente</span>
+        </c:otherwise>
+      </c:choose>
+    </div>
+  </div>
+  
+  <!-- Mensaje de error si ambos están ausentes -->
+  <c:if test="${empty cursosInfo && empty cursosInfoDirectos}">
+    <div class="container-fluid">
+      <div class="alert alert-warning">
+        <h4 class="alert-heading">No hay cursos cargados</h4>
+        <p>No se pudo cargar ningún curso desde la base de datos.</p>
+        <hr>
+        <p class="mb-0">Debug: Verificar ProfesorCursosServlet y CursoDAO, conexión a la base de datos, y si existen cursos asignados al profesor ID 1.</p>
+      </div>
+    </div>
+  </c:if>
+  
+  <!-- Contenido principal -->
   <div class="container-fluid py-4">
     <!-- Título + botón -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -57,78 +132,85 @@
       </button>
     </div>
 
-    <!-- Tarjetas de cursos -->
-    <div class="row">
-      <!-- Curso 1 -->
-      <div class="col-md-4">
-        <div class="course-card">
-          <div class="course-card-header">Matemáticas Avanzadas</div>
-          <div class="course-card-body">
-            <p><strong>Código:</strong> MAT101</p>
-            <p><strong>Estudiantes:</strong> 15</p>
-            <p><strong>Progreso:</strong></p>
-            <div class="progress">
-              <div class="progress-bar bg-success" role="progressbar"
-                   style="width:75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+    <!-- Sección de cursos desde DAO -->
+    <c:if test="${not empty cursosInfo}">
+      <h4 class="text-primary mb-3">Cursos (DAO)</h4>
+      <div class="row">
+        <c:forEach var="info" items="${cursosInfo}">
+          <div class="col-md-4">
+            <div class="course-card">
+              <div class="course-card-header">
+                <c:out value="${info.curso.nombre}"/>
+              </div>
+              <div class="course-card-body">
+                <p><strong>Código:</strong> <c:out value="${info.curso.codigo}"/></p>
+                <p><strong>Estudiantes:</strong> <c:out value="${info.numEstudiantes}"/></p>
+                <p><strong>Promedio del curso:</strong> <c:out value="${info.promedio}"/>/10</p>
+              </div>
+              <div class="course-card-footer">
+                <a href="<c:url value="/profesor/cursos/asignar?cursoId=${info.curso.id}"/>" 
+                  class="btn btn-outline-success">
+                  <i class="bi bi-person-plus me-1"></i>Asignar estudiantes
+                </a>
+              </div>
             </div>
-            <p><strong>Promedio del curso:</strong> 8.2/10</p>
           </div>
-          <div class="course-card-footer">
-            <button class="btn btn-outline-primary">Ver estudiantes</button>
-            <button class="btn btn-outline-primary">Ver actividades</button>
-            <button class="btn btn-outline-primary">Calificaciones</button>
-          </div>
-        </div>
+        </c:forEach>
       </div>
+    </c:if>
 
-      <!-- Curso 2 -->
-      <div class="col-md-4">
-        <div class="course-card">
-          <div class="course-card-header">Álgebra Lineal</div>
-          <div class="course-card-body">
-            <p><strong>Código:</strong> MAT202</p>
-            <p><strong>Estudiantes:</strong> 12</p>
-            <p><strong>Progreso:</strong></p>
-            <div class="progress">
-              <div class="progress-bar bg-warning" role="progressbar"
-                   style="width:45%" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"></div>
+    <!-- Sección de cursos directos -->
+    <c:if test="${not empty cursosInfoDirectos}">
+      <h4 class="text-success mb-3 mt-4">Cursos (Recuperación Directa)</h4>
+      <div class="row">
+        <c:forEach var="info" items="${cursosInfoDirectos}">
+          <div class="col-md-4">
+            <div class="course-card">
+              <div class="course-card-header bg-success">
+                <c:out value="${info.curso.nombre}"/>
+              </div>
+              <div class="course-card-body">
+                <p><strong>Código:</strong> <c:out value="${info.curso.codigo}"/></p>
+                <p><strong>ID Curso:</strong> <c:out value="${info.curso.id}"/></p>
+                <p><strong>ID Profesor:</strong> <c:out value="${info.curso.idProfesor}"/></p>
+              </div>
+              <div class="course-card-footer">
+                <button class="btn btn-outline-primary">
+                  <i class="bi bi-info-circle me-1"></i>Ver detalles
+                </button>
+              </div>
             </div>
-            <p><strong>Promedio del curso:</strong> 7.5/10</p>
           </div>
-          <div class="course-card-footer">
-            <button class="btn btn-outline-primary">Ver estudiantes</button>
-            <button class="btn btn-outline-primary">Ver actividades</button>
-            <button class="btn btn-outline-primary">Calificaciones</button>
-          </div>
-        </div>
+        </c:forEach>
       </div>
-
-      <!-- Curso 3 -->
-      <div class="col-md-4">
-        <div class="course-card">
-          <div class="course-card-header">Cálculo Diferencial</div>
-          <div class="course-card-body">
-            <p><strong>Código:</strong> MAT303</p>
-            <p><strong>Estudiantes:</strong> 18</p>
-            <p><strong>Progreso:</strong></p>
-            <div class="progress">
-              <div class="progress-bar" role="progressbar"
-                   style="background-color:#17a2b8; width:60%" aria-valuenow="60"
-                   aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-            <p><strong>Promedio del curso:</strong> 7.9/10</p>
-          </div>
-          <div class="course-card-footer">
-            <button class="btn btn-outline-primary">Ver estudiantes</button>
-            <button class="btn btn-outline-primary">Ver actividades</button>
-            <button class="btn btn-outline-primary">Calificaciones</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </c:if>
   </div>
 
   <!-- Bootstrap Bundle JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Debug Script -->
+  <script>
+    console.log('=== Debug Info ===');
+    <c:choose>
+      <c:when test="${not empty cursosInfo}">
+        console.log('cursosInfo (DAO): presente');
+        console.log('Número de cursos (DAO):', '${cursosInfo.size()}');
+      </c:when>
+      <c:otherwise>
+        console.log('cursosInfo (DAO): ausente');
+      </c:otherwise>
+    </c:choose>
+    
+    <c:choose>
+      <c:when test="${not empty cursosInfoDirectos}">
+        console.log('cursosInfoDirectos (Directo): presente');
+        console.log('Número de cursos (Directo):', '${cursosInfoDirectos.size()}');
+      </c:when>
+      <c:otherwise>
+        console.log('cursosInfoDirectos (Directo): ausente');
+      </c:otherwise>
+    </c:choose>
+  </script>
 </body>
 </html>

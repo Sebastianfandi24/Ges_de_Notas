@@ -21,20 +21,32 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import Models.Conexion;
+import java.util.logging.Logger;
 
 @WebServlet(name = "EstudianteControllerServlet", urlPatterns = {"/estudiante/*"})
 public class EstudianteControllerServlet extends HttpServlet {
     
-    private final CursoDAO cursoDAO;
-    private final TareaDAO tareaDAO;
+    private CursoDAO cursoDAO;
+    private TareaDAO tareaDAO;
     private final Gson gson;
     private final Conexion conexion;
+    private static final Logger logger = Logger.getLogger(EstudianteControllerServlet.class.getName());
     
     public EstudianteControllerServlet() {
-        this.cursoDAO = new CursoDAO();
-        this.tareaDAO = new TareaDAO();
         this.gson = new Gson();
         this.conexion = new Conexion();
+    }
+    
+    @Override
+    public void init() throws ServletException {
+        try {
+            this.cursoDAO = new CursoDAO();
+            this.tareaDAO = new TareaDAO();
+            logger.info("EstudianteControllerServlet: DAOs inicializados correctamente");
+        } catch (Exception e) {
+            logger.severe("EstudianteControllerServlet: Error al inicializar DAOs: " + e.getMessage());
+            throw new ServletException("Error al inicializar DAOs", e);
+        }
     }
     
     @Override

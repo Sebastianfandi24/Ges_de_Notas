@@ -374,4 +374,73 @@ public class EstudianteDAO implements CRUD<Estudiante> {
             }
         }
     }
+    
+    /**
+     * Obtiene la lista de estudiantes que no están asignados a un curso específico
+     */
+    public List<Estudiante> getNoAsignados(int cursoId) {
+        String sql = "SELECT e.*, u.nombre, u.correo FROM ESTUDIANTE e " +
+                    "INNER JOIN USUARIO u ON e.idUsuario = u.id_usu " +
+                    "WHERE e.id_estudiante NOT IN " +
+                    "(SELECT ce.id_estudiante FROM CURSO_ESTUDIANTE ce WHERE ce.id_curso = ?)";
+        List<Estudiante> estudiantes = new ArrayList<>();
+        
+        try {
+            conn = conexion.crearConexion();
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, cursoId);
+            rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Estudiante estudiante = new Estudiante();
+                estudiante.setId(rs.getInt("id_estudiante"));
+                estudiante.setNombre(rs.getString("nombre"));
+                estudiante.setCorreo(rs.getString("correo"));
+                estudiante.setNumeroIdentificacion(rs.getString("numero_identificacion"));
+                estudiantes.add(estudiante);
+            }
+            
+        } catch (SQLException e) {
+            System.out.println("[EstudianteDAO] Error al obtener estudiantes no asignados: " + e.getMessage());
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.out.println("[EstudianteDAO] Error al cerrar conexiones: " + e.getMessage());
+            }
+        }
+        return estudiantes;
+    }
+
+    /**
+     * Calcula el promedio de todas las notas de un estudiante.
+     */
+    public double calcularPromedio(int idEstudiante) throws SQLException {
+        String sql = "SELECT AVG(nota) AS prom FROM nota_tarea WHERE id_estudiante = ?";
+        try (Connection con = new Conexion().crearConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idEstudiante);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getDouble("prom");
+                }
+            }
+        }
+        return 0.0;
+    }
+
+    /**
+     * Actualiza el campo promedio_academico del estudiante.
+     */
+    public boolean updatePromedioAcademico(int idEstudiante, double promedio) throws SQLException {
+        String sql = "UPDATE estudiante SET promedio_academico = ? WHERE id_estudiante = ?";
+        try (Connection con = new Conexion().crearConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDouble(1, promedio);
+            ps.setInt(2, idEstudiante);
+            return ps.executeUpdate() > 0;
+        }
+    }
 }

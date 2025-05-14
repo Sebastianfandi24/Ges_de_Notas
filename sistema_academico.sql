@@ -244,5 +244,17 @@ INSERT INTO `nota_tarea` (`id_nota`, `id_tarea`, `id_estudiante`, `nota`, `fecha
 (1, 1, 1, 92.50, '2023-04-16 14:30:00', 'Buen desempeño'),
 (2, 2, 1, 88.00, '2023-04-21 15:45:00', 'Buen trabajo, pero hay aspectos a mejorar');
 
+-- ============================
+-- Inicializar promedio académico de estudiantes
+-- ============================
+UPDATE `estudiante` e
+SET e.`promedio_academico` = (
+  SELECT AVG(nt.`nota`)
+  FROM `nota_tarea` nt
+  WHERE nt.`id_estudiante` = e.`id_estudiante`
+);
+
+COMMIT;
+
 SET FOREIGN_KEY_CHECKS = 1;
 COMMIT;

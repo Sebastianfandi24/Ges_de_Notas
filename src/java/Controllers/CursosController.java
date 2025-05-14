@@ -24,6 +24,18 @@ import org.json.JSONObject;
 public class CursosController extends HttpServlet {
     
     private static final Logger logger = Logger.getLogger(CursosController.class.getName());
+    private CursoDAO cursoDAO;
+    
+    @Override
+    public void init() throws ServletException {
+        try {
+            this.cursoDAO = new CursoDAO();
+            logger.info("CursosController: CursoDAO inicializado correctamente");
+        } catch (Exception e) {
+            logger.severe("CursosController: Error al inicializar CursoDAO: " + e.getMessage());
+            throw new ServletException("Error al inicializar CursoDAO", e);
+        }
+    }
 
     /**
      * Maneja las solicitudes GET para obtener cursos
@@ -265,12 +277,6 @@ public class CursosController extends HttpServlet {
     }
     
     // Métodos auxiliares para interactuar con la base de datos
-    
-    private final CursoDAO cursoDAO;
-    
-    public CursosController() {
-        this.cursoDAO = new CursoDAO();
-    }
     
     private Curso read(int id) {
         return cursoDAO.read(id);
