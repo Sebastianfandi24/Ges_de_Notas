@@ -56,6 +56,7 @@
   </style>
 </head>
 <body>
+  <div class="wrapper">
   <%-- Debug del servidor --%>
   <%
     System.out.println("====================== DEBUG PROFESORCURSOS.JSP ======================");
@@ -87,7 +88,7 @@
   <div class="container-fluid py-3 debug-panel">
     <h5>Panel de Depuración</h5>
     <div>
-      <strong>Estado del atributo 'cursosInfo' (DAO):</strong> 
+      <strong>Estado del atributo 'cursosInfo' (DAO):</strong>
       <c:choose>
         <c:when test="${not empty cursosInfo}">
           <span class="badge bg-success">Presente (${cursosInfo.size()} cursos)</span>
@@ -97,44 +98,33 @@
         </c:otherwise>
       </c:choose>
     </div>
-    <div class="mt-2">
-      <strong>Estado del atributo 'cursosInfoDirectos' (Directo):</strong> 
-      <c:choose>
-        <c:when test="${not empty cursosInfoDirectos}">
-          <span class="badge bg-success">Presente (${cursosInfoDirectos.size()} cursos)</span>
-        </c:when>
-        <c:otherwise>
-          <span class="badge bg-danger">Ausente</span>
-        </c:otherwise>
-      </c:choose>
-    </div>
   </div>
   
-  <!-- Mensaje de error si ambos están ausentes -->
-  <c:if test="${empty cursosInfo && empty cursosInfoDirectos}">
+  <!-- Mensaje de error si no hay cursos -->
+  <c:if test="${empty cursosInfo}">
     <div class="container-fluid">
       <div class="alert alert-warning">
         <h4 class="alert-heading">No hay cursos cargados</h4>
         <p>No se pudo cargar ningún curso desde la base de datos.</p>
         <hr>
-        <p class="mb-0">Debug: Verificar ProfesorCursosServlet y CursoDAO, conexión a la base de datos, y si existen cursos asignados al profesor ID 1.</p>
+        <p class="mb-0">Debug: Verificar ProfesorCursosServlet y CursoDAO.</p>
       </div>
     </div>
   </c:if>
-  
+
   <!-- Contenido principal -->
   <div class="container-fluid py-4">
     <!-- Título + botón -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2 class="m-0">Mis Cursos</h2>
-      <button class="btn btn-primary">
-        <i class="bi bi-plus-circle me-1"></i> Nueva Actividad
-      </button>
+      <a href="${pageContext.request.contextPath}/crearCurso.jsp" class="btn btn-success">
+        <i class="bi bi-plus-circle me-1"></i> Crear Curso
+      </a>
     </div>
 
     <!-- Sección de cursos desde DAO -->
     <c:if test="${not empty cursosInfo}">
-      <h4 class="text-primary mb-3">Cursos (DAO)</h4>
+      <h4 class="text-primary mb-3">Cursos</h4>
       <div class="row">
         <c:forEach var="info" items="${cursosInfo}">
           <div class="col-md-4">
@@ -144,40 +134,14 @@
               </div>
               <div class="course-card-body">
                 <p><strong>Código:</strong> <c:out value="${info.curso.codigo}"/></p>
-                <p><strong>Estudiantes:</strong> <c:out value="${info.numEstudiantes}"/></p>
+                <p><strong>Descripción:</strong> <c:out value="${info.curso.descripcion}"/></p>
+                <p><strong>Estudiantes inscritos:</strong> <c:out value="${info.numEstudiantes}"/></p>
                 <p><strong>Promedio del curso:</strong> <c:out value="${info.promedio}"/>/10</p>
               </div>
               <div class="course-card-footer">
-                <a href="<c:url value="/profesor/cursos/asignar?cursoId=${info.curso.id}"/>" 
-                  class="btn btn-outline-success">
-                  <i class="bi bi-person-plus me-1"></i>Asignar estudiantes
+                <a href="<c:url value='/profesor/cursos/asignar?cursoId=${info.curso.id}'/>" class="btn btn-outline-success">
+                  <i class="bi bi-people-fill me-1"></i>Ver/Asignar Estudiantes
                 </a>
-              </div>
-            </div>
-          </div>
-        </c:forEach>
-      </div>
-    </c:if>
-
-    <!-- Sección de cursos directos -->
-    <c:if test="${not empty cursosInfoDirectos}">
-      <h4 class="text-success mb-3 mt-4">Cursos (Recuperación Directa)</h4>
-      <div class="row">
-        <c:forEach var="info" items="${cursosInfoDirectos}">
-          <div class="col-md-4">
-            <div class="course-card">
-              <div class="course-card-header bg-success">
-                <c:out value="${info.curso.nombre}"/>
-              </div>
-              <div class="course-card-body">
-                <p><strong>Código:</strong> <c:out value="${info.curso.codigo}"/></p>
-                <p><strong>ID Curso:</strong> <c:out value="${info.curso.id}"/></p>
-                <p><strong>ID Profesor:</strong> <c:out value="${info.curso.idProfesor}"/></p>
-              </div>
-              <div class="course-card-footer">
-                <button class="btn btn-outline-primary">
-                  <i class="bi bi-info-circle me-1"></i>Ver detalles
-                </button>
               </div>
             </div>
           </div>
@@ -192,25 +156,22 @@
   <!-- Debug Script -->
   <script>
     console.log('=== Debug Info ===');
-    <c:choose>
-      <c:when test="${not empty cursosInfo}">
-        console.log('cursosInfo (DAO): presente');
-        console.log('Número de cursos (DAO):', '${cursosInfo.size()}');
-      </c:when>
-      <c:otherwise>
-        console.log('cursosInfo (DAO): ausente');
-      </c:otherwise>
-    </c:choose>
-    
-    <c:choose>
-      <c:when test="${not empty cursosInfoDirectos}">
-        console.log('cursosInfoDirectos (Directo): presente');
-        console.log('Número de cursos (Directo):', '${cursosInfoDirectos.size()}');
-      </c:when>
-      <c:otherwise>
-        console.log('cursosInfoDirectos (Directo): ausente');
-      </c:otherwise>
-    </c:choose>
+    <c:if test="${not empty cursosInfo}">
+      console.log('cursosInfo (DAO): presente');
+      console.log('Número de cursos (DAO): ${cursosInfo.size()}');
+    </c:if>
+    <c:if test="${empty cursosInfo}">
+      console.log('cursosInfo (DAO): ausente');
+    </c:if>
+    <c:if test="${not empty cursosInfoDirectos}">
+      console.log('cursosInfoDirectos (Directo): presente');
+      console.log('Número de cursos (Directo): ${cursosInfoDirectos.size()}');
+    </c:if>
+    <c:if test="${empty cursosInfoDirectos}">
+      console.log('cursosInfoDirectos (Directo): ausente');
+    </c:if>
   </script>
+  </div>
+</body>
 </body>
 </html>

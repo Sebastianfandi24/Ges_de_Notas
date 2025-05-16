@@ -28,4 +28,12 @@ public class CursoInfo {
     public int getProgreso() {
         return progreso;
     }
+
+    public void setNumEstudiantes(int numEstudiantes) {
+        this.numEstudiantes = numEstudiantes;
+    }
+
+    public void setPromedio(double promedio) {
+        this.promedio = promedio;
+    }
 }

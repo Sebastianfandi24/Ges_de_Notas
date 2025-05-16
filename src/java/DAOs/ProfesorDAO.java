@@ -403,4 +403,23 @@ public class ProfesorDAO implements CRUD<Profesor> {
             }
         }
     }
+    
+    /**
+     * Obtiene el ID del profesor dado el ID de usuario.
+     */
+    public Integer getProfesorIdByUsuario(int idUsuario) {
+        String sql = "SELECT id_profesor FROM profesor WHERE idUsuario = ?";
+        try (Connection conn = conexion.crearConexion();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idUsuario);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id_profesor");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error al obtener id_profesor para usuario " + idUsuario, e);
+        }
+        return null;
+    }
 }

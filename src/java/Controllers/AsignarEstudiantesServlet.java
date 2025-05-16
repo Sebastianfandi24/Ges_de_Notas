@@ -38,9 +38,12 @@ public class AsignarEstudiantesServlet extends HttpServlet {
         try {
             int cursoId = Integer.parseInt(request.getParameter("cursoId"));
             List<Estudiante> disponibles = estudianteDAO.getNoAsignados(cursoId);
+            // Obtener también estudiantes ya asignados
+            List<Estudiante> asignados = estudianteDAO.getAsignados(cursoId);
             
             request.setAttribute("cursoId", cursoId);
             request.setAttribute("disponibles", disponibles);
+            request.setAttribute("asignados", asignados);
             request.getRequestDispatcher("/asignarEstudiantes.jsp")
                   .forward(request, response);
         } catch (Exception e) {
@@ -54,6 +57,8 @@ public class AsignarEstudiantesServlet extends HttpServlet {
             throws ServletException, IOException {
         try {
             int cursoId = Integer.parseInt(request.getParameter("cursoId"));
+            // Limpiar asignaciones previas para poder desmarcar
+            cursoDAO.clearAssignments(cursoId);
             String[] ids = request.getParameterValues("estudiantes");
             
             if (ids != null && ids.length > 0) {

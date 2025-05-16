@@ -1,4 +1,36 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="true" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+<%-- Desactivamos la redirección para evitar bucles y problemas de contexto --%>
+<%-- 
+<c:if test="${tareas == null && !requestScope['javax.servlet.forward.servlet_path'].contains('/profesor/tareas')}">
+  <c:redirect url="${pageContext.request.contextPath}/profesor/tareas" />
+</c:if>
+--%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+
+<%-- Código para mostrar información de diagnóstico cuando se pasa un parámetro en la URL --%>
+<c:if test="${param.debug == 'true'}">
+  <div style="padding: 10px; margin: 10px; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
+    <h3>Información de diagnóstico:</h3>
+    <ul>
+      <li><strong>Context Path:</strong> ${pageContext.request.contextPath}</li>
+      <li><strong>Servlet Path:</strong> ${pageContext.request.servletPath}</li>
+      <li><strong>Request URI:</strong> ${pageContext.request.requestURI}</li>
+      <li><strong>JSP Path:</strong> <%= application.getRealPath(request.getServletPath()) %></li>
+    </ul>
+    <c:if test="${fn:contains(pageContext.request.contextPath, '/Ges_de_Notas/Ges_de_Notas')}">
+      <div style="color: red; font-weight: bold;">
+        ¡Se detectó un problema de contexto duplicado!
+        <a href="${pageContext.request.contextPath}/diagnostico?accion=rutas&specialAction=fixContextDuplicate" 
+           style="color: green; font-weight: bold;">
+          Hacer clic aquí para corregir
+        </a>
+      </div>
+    </c:if>
+  </div>
+</c:if>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -35,9 +67,18 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2 class="m-0">Gestión de Tareas</h2>
       <div>
-        <button id="btnNewTask" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTaskModal">
-          <i class="bi bi-plus-circle me-1"></i> Nueva tarea
-        </button>
+        <c:choose>
+          <c:when test="${empty cursos}">
+            <button class="btn btn-primary" disabled title="Debe crear un curso primero">
+              <i class="bi bi-plus-circle me-1"></i>Nueva Tarea
+            </button>
+          </c:when>
+          <c:otherwise>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newTaskModal">
+              <i class="bi bi-plus-circle me-1"></i>Nueva Tarea
+            </button>
+          </c:otherwise>
+        </c:choose>
       </div>
     </div>
 
@@ -48,56 +89,112 @@
           <tr>
             <th>Título</th>
             <th>Curso</th>
-            <th>Fecha entrega</th>
-            <th>Entregas</th>
+            <th>Fecha Asignación</th>
+            <th>Fecha Entrega</th>
             <th>Estado</th>
             <th>Acciones</th>
           </tr>
         </thead>
-        <tbody id="tareasTbody">
-          <!-- Filas de tareas se generarán dinámicamente -->
+        <tbody>
+          <c:choose>
+            <c:when test="${empty tareas}">
+              <tr>
+                <td colspan="6" class="text-center py-4">
+                  <div class="alert alert-info mb-0" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    No hay tareas disponibles
+                    <c:if test="${not empty cursos}">
+                      <br>
+                      <small>Puede crear una nueva tarea usando el botón "Nueva Tarea"</small>
+                    </c:if>
+                  </div>
+                </td>
+              </tr>
+            </c:when>
+            <c:otherwise>
+              <c:forEach var="tarea" items="${tareas}">
+                <tr>
+                  <td>${tarea.titulo}</td>
+                  <td>${tarea.curso_nombre}</td>
+                  <td><fmt:formatDate value="${tarea.fecha_asignacion}" pattern="dd/MM/yyyy"/></td>
+                  <td><fmt:formatDate value="${tarea.fecha_entrega}" pattern="dd/MM/yyyy"/></td>
+                  <td>
+                    <c:choose>
+                      <c:when test="${tarea.estado eq 'Vencida'}">
+                        <span class="badge bg-danger">Vencida</span>
+                      </c:when>
+                      <c:when test="${tarea.estado eq 'Activa'}">
+                        <span class="badge bg-success">Activa</span>
+                      </c:when>
+                      <c:otherwise>
+                        <span class="badge bg-secondary">Pendiente</span>
+                      </c:otherwise>
+                    </c:choose>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button type="button" class="btn btn-outline-primary btn-grade"
+                              data-bs-toggle="modal" data-bs-target="#gradeModal"
+                              data-tarea-id="${tarea.id}"
+                              data-tarea-titulo="${tarea.titulo}">
+                        <i class="bi bi-check2-square"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-secondary btn-edit"
+                              data-bs-toggle="modal" data-bs-target="#editTaskModal"
+                              data-tarea-id="${tarea.id}">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-danger btn-delete"
+                              data-tarea-id="${tarea.id}">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </c:forEach>
+            </c:otherwise>
+          </c:choose>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Modal Crear Tarea -->
+  <!-- Modal Nueva Tarea -->
   <div class="modal fade" id="newTaskModal" tabindex="-1" aria-labelledby="newTaskModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="newTaskModalLabel">Crear Nueva Tarea</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          <h5 class="modal-title" id="newTaskModalLabel">Nueva Tarea</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <form id="newTaskForm">
+          <form id="newTaskForm" action="${pageContext.request.contextPath}/profesor/tareas/crear" method="post">
             <div class="mb-3">
-              <label for="taskTitle" class="form-label">Título</label>
+              <label for="taskTitle" class="form-label">Título de la tarea</label>
               <input type="text" class="form-control" id="taskTitle" name="titulo" required>
+            </div>
+            <div class="mb-3">
+              <label for="taskDesc" class="form-label">Descripción</label>
+              <textarea class="form-control" id="taskDesc" name="descripcion" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="taskCourse" class="form-label">Curso</label>
+              <select class="form-select" id="taskCourse" name="idCurso" required>
+                <option value="">Seleccione un curso...</option>
+                <c:forEach var="curso" items="${cursos}">
+                  <option value="${curso.id}">${curso.nombre}</option>
+                </c:forEach>
+              </select>
             </div>
             <div class="mb-3">
               <label for="taskDueDate" class="form-label">Fecha de entrega</label>
               <input type="date" class="form-control" id="taskDueDate" name="fechaEntrega" required>
             </div>
-            <div class="mb-3">
-              <label for="taskCourse" class="form-label">Curso</label>
-              <select class="form-select" id="taskCourse" name="cursoId" required>
-                <option value="">Seleccione un curso...</option>
-              </select>
-            </div>
-            <div id="studentsTableContainer" class="table-responsive" style="display:none;">
-              <table class="table table-sm">
-                <thead>
-                  <tr><th>Estudiante</th><th>Nota inicial</th><th>Comentario</th></tr>
-                </thead>
-                <tbody id="studentsTableBody"></tbody>
-              </table>
-            </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" id="saveTaskBtn" class="btn btn-primary">Guardar tarea</button>
+          <button type="submit" form="newTaskForm" class="btn btn-primary">Crear Tarea</button>
         </div>
       </div>
     </div>
@@ -108,25 +205,32 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="gradeModalLabel">Calificar entregas - <span id="gradeTareaTitle"></span></h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          <h5 class="modal-title" id="gradeModalLabel">Calificar Entregas</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <form id="gradeForm">
-            <input type="hidden" id="gradeTareaId" name="id_tarea" />
+          <form id="gradeForm" action="${pageContext.request.contextPath}/profesor/tareas/calificar" method="post">
+            <input type="hidden" id="gradeTareaId" name="idTarea">
+            <h6 id="gradeTareaTitle" class="mb-3 fw-bold">Detalles de la tarea</h6>
             <div class="table-responsive">
-              <table class="table table-sm">
+              <table class="table">
                 <thead>
-                  <tr><th>Estudiante</th><th>Nota</th><th>Comentario</th></tr>
+                  <tr>
+                    <th>Estudiante</th>
+                    <th>Nota</th>
+                    <th>Comentario</th>
+                  </tr>
                 </thead>
-                <tbody id="gradeTableBody"></tbody>
+                <tbody id="gradeTableBody">
+                  <!-- Se cargará dinámicamente -->
+                </tbody>
               </table>
             </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" id="saveGradesBtn" class="btn btn-primary">Guardar calificaciones</button>
+          <button type="submit" form="gradeForm" class="btn btn-primary">Guardar Calificaciones</button>
         </div>
       </div>
     </div>
@@ -138,231 +242,123 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="editTaskModalLabel">Editar Tarea</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <form id="editTaskForm">
-            <input type="hidden" id="editTaskId" name="id_tarea">
+          <form id="editTaskForm" action="${pageContext.request.contextPath}/profesor/tareas/editar" method="post">
+            <input type="hidden" id="editTaskId" name="idTarea">
             <div class="mb-3">
-              <label for="editTaskTitle" class="form-label">Título</label>
-              <input type="text" id="editTaskTitle" name="titulo" class="form-control">
+              <label for="editTaskTitle" class="form-label">Título de la tarea</label>
+              <input type="text" class="form-control" id="editTaskTitle" name="titulo" required>
             </div>
             <div class="mb-3">
               <label for="editTaskDesc" class="form-label">Descripción</label>
-              <textarea id="editTaskDesc" name="descripcion" class="form-control" rows="3"></textarea>
-            </div>
-            <div class="mb-3">
-              <label for="editTaskDueDate" class="form-label">Fecha de entrega</label>
-              <input type="date" id="editTaskDueDate" name="fecha_entrega" class="form-control">
+              <textarea class="form-control" id="editTaskDesc" name="descripcion" rows="3"></textarea>
             </div>
             <div class="mb-3">
               <label for="editTaskCourse" class="form-label">Curso</label>
-              <select id="editTaskCourse" name="cursoId" class="form-select"></select>
+              <select class="form-select" id="editTaskCourse" name="idCurso" required>
+                <option value="">Seleccione un curso...</option>
+                <c:forEach var="curso" items="${cursos}">
+                  <option value="${curso.id}">${curso.nombre}</option>
+                </c:forEach>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="editTaskDueDate" class="form-label">Fecha de entrega</label>
+              <input type="date" class="form-control" id="editTaskDueDate" name="fechaEntrega" required>
             </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" id="saveEditTaskBtn" class="btn btn-primary">Guardar cambios</button>
+          <button type="submit" form="editTaskForm" class="btn btn-primary">Guardar Cambios</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Bootstrap Bundle JS -->
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    const apiBase = '<%= request.getContextPath() %>/profesor';
-    async function fetchJson(url) {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(resp.statusText);
-      return resp.json();
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      // 1) Cargar tareas
-      const tbody = document.getElementById('tareasTbody');
-      const idProfesor = 1; // TODO: Obtener de sesión
-      try {
-        const cursos = await fetchJson(apiBase + '/cursos/mis-cursos?id_profesor=' + idProfesor);
-        for (const curso of cursos) {
-          const tareas = await fetchJson(apiBase + '/tareas/por-curso?id_curso=' + curso.id_curso);
-          for (const t of tareas) {
-            const notas = await fetchJson(apiBase + '/notas/por-tarea?id_tarea=' + t.id_tarea);
-            const estado = new Date(t.fecha_entrega) > new Date() ? 'Activa' : (notas.length < curso.total_estudiantes ? 'Por calificar' : 'Calificada');
-            const badgeClass = estado==='Activa'? 'bg-info': estado==='Por calificar'? 'bg-warning': 'bg-success';
-            const row = `
+    document.addEventListener('DOMContentLoaded', function() {
+      // Botones para mostrar modales
+      document.querySelectorAll('.btn-grade').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const tareaId = this.dataset.tareaId;
+          const tareaTitle = this.dataset.tareaTitulo;
+          document.getElementById('gradeTareaId').value = tareaId;
+          document.getElementById('gradeTareaTitle').textContent = tareaTitle;
+          
+          try {
+            const response = await fetch('${pageContext.request.contextPath}/profesor/tareas/estudiantes?id_tarea=' + tareaId);
+            if (!response.ok) throw new Error('Error cargando estudiantes');
+            const estudiantes = await response.json();
+            
+            const tbody = document.getElementById('gradeTableBody');
+            tbody.innerHTML = estudiantes.map(est => `
               <tr>
-                <td>${t.titulo}</td>
-                <td>${curso.nombre}</td>
-                <td>${new Date(t.fecha_entrega).toLocaleDateString()}</td>
-                <td>${notas.length}/${curso.total_estudiantes}</td>
-                <td><span class="badge ${badgeClass} text-white">${estado}</span></td>
+                <td>${est.nombre}</td>
                 <td>
-                  <button class="btn btn-outline-primary btn-sm btn-grade" data-id="${t.id_tarea}">Calificar entregas</button>
-                  <button class="btn btn-outline-warning btn-sm btn-edit" data-id="${t.id_tarea}">Editar tarea</button>
+                  <input type="number" class="form-control form-control-sm" 
+                         name="nota_${est.id_estudiante}" value="${est.nota || ''}"
+                         min="0" max="100" step="0.1">
                 </td>
-              </tr>`;
-            tbody.insertAdjacentHTML('beforeend', row);
+                <td>
+                  <input type="text" class="form-control form-control-sm"
+                         name="comentario_${est.id_estudiante}" 
+                         value="${est.comentario || ''}">
+                </td>
+              </tr>
+            `).join('');
+          } catch (error) {
+            console.error('Error:', error);
+            alert('Error cargando datos de estudiantes');
           }
-        }
-      } catch (e) {
-        console.error('Error cargando tareas:', e);
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">No se pudieron cargar las tareas</td></tr>';
-      }
-
-      // 2) Inicializar modal de nueva tarea
-      const btnNew = document.getElementById('btnNewTask');
-      const selectCourse = document.getElementById('taskCourse');
-      const tableContainer = document.getElementById('studentsTableContainer');
-      const tableBody = document.getElementById('studentsTableBody');
-      const saveBtn = document.getElementById('saveTaskBtn');
-      const form = document.getElementById('newTaskForm');
-
-      btnNew.addEventListener('click', async () => {
-        const cursos = await fetchJson(apiBase + '/cursos/mis-cursos?id_profesor=' + idProfesor);
-        selectCourse.innerHTML = '<option value="">Seleccione un curso...</option>';
-        cursos.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c.id_curso;
-          opt.textContent = c.nombre;
-          selectCourse.append(opt);
         });
-        tableContainer.style.display = 'none';
       });
 
-      selectCourse.addEventListener('change', async () => {
-        const idCurso = selectCourse.value;
-        if (!idCurso) { tableContainer.style.display = 'none'; return; }
-        const estudiantes = await fetchJson(apiBase + '/curso-estudiantes?id_curso=' + idCurso);
-        tableBody.innerHTML = '';
-        estudiantes.forEach(e => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${e.nombre}</td>
-            <td><input type="number" min="0" max="10" step="0.1" class="form-control form-control-sm" name="nota_${e.id_estudiante}"></td>
-            <td><input type="text" class="form-control form-control-sm" name="comentario_${e.id_estudiante}" placeholder="Comentario"></td>
-          `;
-          tableBody.append(tr);
+      // Botones para editar tarea
+      document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const tareaId = this.dataset.tareaId;
+          try {
+            const response = await fetch('${pageContext.request.contextPath}/profesor/tareas/' + tareaId);
+            if (!response.ok) throw new Error('Error cargando tarea');
+            const tarea = await response.json();
+            
+            document.getElementById('editTaskId').value = tarea.id_tarea;
+            document.getElementById('editTaskTitle').value = tarea.titulo;
+            document.getElementById('editTaskDesc').value = tarea.descripcion;
+            document.getElementById('editTaskCourse').value = tarea.id_curso;
+            document.getElementById('editTaskDueDate').value = new Date(tarea.fecha_entrega).toISOString().split('T')[0];
+          } catch (error) {
+            console.error('Error:', error);
+            alert('Error cargando datos de la tarea');
+          }
         });
-        tableContainer.style.display = 'block';
       });
 
-      saveBtn.addEventListener('click', async () => {
-        const data = new FormData(form);
-        console.group('Crear Tarea - Request');
-        for (const [key, value] of data.entries()) console.log(key, value);
-        console.groupEnd();
-        const resp = await fetch(apiBase + '/tareas/crear', { method: 'POST', body: data });
-        console.log('Crear Tarea - Status:', resp.status);
-        const resultCreate = await resp.json().catch(() => null);
-        console.log('Crear Tarea - Response:', resultCreate);
-        if (resp.ok) location.reload(); else alert('Error al crear tarea');
-      });
-    });
-
-    const idProfesor = 1; // TODO: obtener del session
-    document.querySelector('.table-wrapper table tbody').addEventListener('click', async e => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      const id = btn.dataset.id;
-      if (btn.classList.contains('btn-grade')) {
-        // Mostrar modal Calificar
-        document.getElementById('gradeTareaId').value = id;
-        document.getElementById('gradeTareaTitle').textContent = btn.closest('tr').querySelector('td').textContent;
-        // Cargar datos para calificar
-        const tarea = await fetchJson(apiBase + '/tareas/' + id);
-        const cursoId = tarea.id_curso;
-        const estudiantes = await fetchJson(apiBase + '/curso-estudiantes?id_curso=' + cursoId);
-        const notas = await fetchJson(apiBase + '/notas/por-tarea?id_tarea=' + id);
-        const gtbody = document.getElementById('gradeTableBody');
-        gtbody.innerHTML = '';
-        estudiantes.forEach(est => {
-          const notaObj = notas.find(n => n.id_estudiante === est.id_estudiante) || {};
-          const val = notaObj.nota || '';
-          const com = notaObj.comentario || '';
-          const idNota = notaObj.id_nota || '';
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${est.nombre}</td>
-            <td>
-              <input type="hidden" name="id_nota_${est.id_estudiante}" value="${idNota}">
-              <input type="number" class="form-control" name="nota_${est.id_estudiante}" value="${val}" min="0" max="10" step="0.1">
-            </td>
-            <td><input type="text" class="form-control" name="comentario_${est.id_estudiante}" value="${com}"></td>
-          `;
-          gtbody.appendChild(tr);
+      // Botones para eliminar tarea
+      document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+          if (confirm('¿Está seguro de que desea eliminar esta tarea?')) {
+            const tareaId = this.dataset.tareaId;
+            fetch('${pageContext.request.contextPath}/profesor/tareas/' + tareaId, {
+              method: 'DELETE'
+            }).then(response => {
+              if (response.ok) {
+                window.location.reload();
+              } else {
+                throw new Error('Error eliminando tarea');
+              }
+            }).catch(error => {
+              console.error('Error:', error);
+              alert('Error eliminando la tarea');
+            });
+          }
         });
-        new bootstrap.Modal(document.getElementById('gradeModal')).show();
-      } else if (btn.classList.contains('btn-edit')) {
-        // Mostrar modal Editar
-        document.getElementById('editTaskId').value = id;
-        // Cargar datos de tarea y cursos
-        const tarea = await fetchJson(apiBase + '/tareas/' + id);
-        document.getElementById('editTaskTitle').value = tarea.titulo;
-        document.getElementById('editTaskDesc').value = tarea.descripcion || '';
-        document.getElementById('editTaskDueDate').value = tarea.fecha_entrega.split('T')[0];
-        // Cargar opciones de cursos
-        const cursos = await fetchJson(apiBase + '/cursos/mis-cursos?id_profesor=' + idProfesor);
-        const sel = document.getElementById('editTaskCourse'); sel.innerHTML = '';
-        cursos.forEach(c => sel.add(new Option(c.nombre, c.id_curso)));
-        sel.value = tarea.id_curso;
-        new bootstrap.Modal(document.getElementById('editTaskModal')).show();
-      }
-    });
-
-    document.getElementById('saveEditTaskBtn').addEventListener('click', async () => {
-      const formE = document.getElementById('editTaskForm');
-      const dataE = new FormData(formE);
-      console.group('Editar Tarea - Request');
-      for (const [k, v] of dataE.entries()) console.log(k, v);
-      console.groupEnd();
-      const id = dataE.get('id_tarea');
-      // Enviar edición mediante URLSearchParams
-      const urlEncE = new URLSearchParams();
-      for (const [k, v] of dataE.entries()) urlEncE.append(k, v);
-      const respE = await fetch(apiBase + '/tareas/actualizar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: urlEncE.toString()
       });
-      console.log('Editar Tarea - Status:', respE.status);
-      const rawE = await respE.text();
-      console.log('Editar Tarea - Raw Response:', rawE);
-      let resultEdit;
-      try { resultEdit = JSON.parse(rawE); }
-      catch (e) { console.error('Error parsing edit JSON:', e); resultEdit = null; }
-      console.log('Editar Tarea - Parsed:', resultEdit);
-      if (respE.ok) location.reload(); else alert('Error al actualizar tarea');
-    });
-  
-    document.getElementById('saveGradesBtn').addEventListener('click', async () => {
-      const formG = document.getElementById('gradeForm');
-      const dataG = new FormData(formG);
-      console.group('Guardar Calificaciones - Request');
-      for (const [k, v] of dataG.entries()) console.log(k, v);
-      console.groupEnd();
-      // Enviar como urlencoded para que el servlet pueda parsear
-      const urlEncoded = new URLSearchParams();
-      for (const [k, v] of dataG.entries()) urlEncoded.append(k, v);
-      const respG = await fetch(apiBase + '/tareas/calificar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-        body: urlEncoded.toString()
-      });
-      console.log('Guardar Calificaciones - Status:', respG.status);
-      const rawG = await respG.text();
-      console.log('Guardar Calificaciones - Raw Response:', rawG);
-      let resultG;
-      try {
-        resultG = JSON.parse(rawG);
-      } catch(e) {
-        console.error('Error parsing JSON:', e);
-        resultG = null;
-      }
-      console.log('Guardar Calificaciones - Parsed:', resultG);
-      if (respG.ok) { alert('Calificaciones guardadas'); location.reload(); }
-      else alert('Error al guardar calificaciones');
     });
   </script>
 </body>

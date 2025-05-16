@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Context path="/Ges_de_Notas">    <Resource name="jdbc/GesDeNotasDB" 
+<Context path="/Ges_de_Notas">    
+    <Resource name="jdbc/GesDeNotasDB" 
               auth="Container" 
               type="javax.sql.DataSource" 
               maxTotal="100" 

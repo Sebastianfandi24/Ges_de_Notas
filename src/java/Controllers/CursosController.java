@@ -2,9 +2,14 @@ package Controllers;
 
 import Models.Curso;
 import Models.Estudiante;
+import Models.Conexion;
 import DAOs.CursoDAO;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -49,7 +54,50 @@ public class CursosController extends HttpServlet {
         
         try {
             String idParam = request.getParameter("id");
-            logger.info("CursosController: recibida solicitud GET. Parámetro ID: " + idParam);
+            String path = request.getPathInfo();
+            
+            // Nuevo endpoint de diagnóstico para verificar datos
+            if (path != null && path.equals("/diagnostico")) {
+                logger.info("Ejecutando diagnóstico de datos");
+                
+                // Verificar cursos
+                logger.info("Verificando cursos...");
+                List<Curso> todos = cursoDAO.readAll();
+                JSONObject diagnostico = new JSONObject();
+                
+                // Información general
+                diagnostico.put("totalCursos", todos.size());
+                
+                // Detalles de cursos
+                JSONArray cursos = new JSONArray();
+                for (Curso c : todos) {
+                    JSONObject curso = new JSONObject();
+                    curso.put("id", c.getId());
+                    curso.put("nombre", c.getNombre());
+                    curso.put("codigo", c.getCodigo());
+                    curso.put("idProfesor", c.getIdProfesor());
+                    
+                    // Verificar tareas de este curso
+                    try {
+                        String sql = "SELECT COUNT(*) as total FROM tarea WHERE id_curso = " + c.getId();
+                        try (Connection conn = new Conexion().crearConexion();
+                             Statement stmt = conn.createStatement();
+                             ResultSet rs = stmt.executeQuery(sql)) {
+                            if (rs.next()) {
+                                curso.put("numTareas", rs.getInt("total"));
+                            }
+                        }
+                    } catch (Exception e) {
+                        curso.put("error", "Error al contar tareas: " + e.getMessage());
+                    }
+                    
+                    cursos.put(curso);
+                }
+                diagnostico.put("cursos", cursos);
+                
+                out.print(diagnostico.toString(2));
+                return;
+            }
             
             if (idParam != null && !idParam.isEmpty()) {
                 try {

@@ -249,18 +249,31 @@ public class TareaDAO implements CRUD<Tarea> {
     
     /**
      * Obtiene todas las tareas de un profesor según su ID, uniéndose con cursos
-     */
-    public List<Tarea> getTareasPorProfesor(int idProfesor) {
-        String sql = "SELECT t.* FROM TAREA t " +
-                     "JOIN CURSO c ON t.id_curso = c.id_curso " +
+     */    public List<Tarea> getTareasPorProfesor(int idProfesor) {
+        System.out.println("Buscando tareas para profesor ID: " + idProfesor);
+        
+        // Consulta que une tareas con cursos para obtener el nombre del curso
+        String sql = "SELECT t.*, c.nombre as curso_nombre FROM tarea t " +
+                     "JOIN curso c ON t.id_curso = c.id_curso " +
                      "WHERE c.idProfesor = ?";
+        
         List<Tarea> tareas = new ArrayList<>();
         try {
             conn = conexion.crearConexion();
+            if (conn == null) {
+                System.out.println("Error: No se pudo establecer conexión a la base de datos");
+                return tareas;
+            }
+            
             ps = conn.prepareStatement(sql);
             ps.setInt(1, idProfesor);
+            System.out.println("Ejecutando consulta: " + sql.replace("?", String.valueOf(idProfesor)));
+            
             rs = ps.executeQuery();
+            int count = 0;
+            
             while (rs.next()) {
+                count++;
                 Tarea tarea = new Tarea();
                 tarea.setId(rs.getInt("id_tarea"));
                 tarea.setTitulo(rs.getString("titulo"));
@@ -268,10 +281,22 @@ public class TareaDAO implements CRUD<Tarea> {
                 tarea.setFecha_asignacion(rs.getDate("fecha_asignacion"));
                 tarea.setFecha_entrega(rs.getDate("fecha_entrega"));
                 tarea.setId_curso(rs.getInt("id_curso"));
+                
+                // Establecemos el nombre del curso de manera explícita
+                String nombreCurso = rs.getString("curso_nombre");
+                tarea.setCurso_nombre(nombreCurso != null ? nombreCurso : "Sin curso");
+                
                 tareas.add(tarea);
+                System.out.println("Tarea encontrada: ID=" + tarea.getId() + 
+                                  ", Título=" + tarea.getTitulo() + 
+                                  ", Curso=" + tarea.getCurso_nombre() + 
+                                  ", Fecha entrega=" + tarea.getFecha_entrega());
             }
+            
+            System.out.println("Total de tareas encontradas para el profesor ID " + idProfesor + ": " + count);
         } catch (SQLException e) {
             System.out.println("Error al obtener tareas por profesor - " + e.getMessage());
+            e.printStackTrace(); // Imprimir stack trace para tener más detalles
         } finally {
             try { if (rs != null) rs.close(); if (ps != null) ps.close(); if (conn != null) conn.close(); } catch (SQLException ignored) {}
         }

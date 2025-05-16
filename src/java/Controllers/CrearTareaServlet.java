@@ -19,24 +19,26 @@ import java.util.logging.Logger;
 
 @WebServlet(name="CrearTareaServlet", urlPatterns = {"/profesor/tareas/crear"})
 public class CrearTareaServlet extends HttpServlet {
-    private static final Logger logger = Logger.getLogger(CrearTareaServlet.class.getName());
-
-    @Override
+    private static final Logger logger = Logger.getLogger(CrearTareaServlet.class.getName());    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         // Instanciar DAO y formateador localmente
-        TareaDAO tareaDAO = new TareaDAO();
-        NotaDAO notaDAO = new NotaDAO();
+        TareaDAO tareaDAO;
+        NotaDAO notaDAO;
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         try {
+            tareaDAO = new TareaDAO();
+            notaDAO = new NotaDAO();
+            
             String titulo = request.getParameter("titulo");
+            String descripcion = request.getParameter("descripcion");
             Date fechaEntrega = sdf.parse(request.getParameter("fechaEntrega"));
-            int idCurso = Integer.parseInt(request.getParameter("cursoId"));
+            int idCurso = Integer.parseInt(request.getParameter("idCurso"));
 
             // Crear tarea
             Tarea tarea = new Tarea();
             tarea.setTitulo(titulo);
-            tarea.setDescripcion("");
+            tarea.setDescripcion(descripcion);
             tarea.setFecha_asignacion(new Date());
             tarea.setFecha_entrega(fechaEntrega);
             tarea.setId_curso(idCurso);

@@ -454,6 +454,65 @@ public class CursoDAO implements CRUD<Curso> {
         return estudiantes;
     }
 
+    /**
+     * Retorna el número de estudiantes inscritos en un curso.
+     */
+    public int getStudentCount(int idCurso) {
+        String sql = "SELECT COUNT(*) FROM curso_estudiante WHERE id_curso = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idCurso);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            logger.severe("Error al contar estudiantes del curso " + idCurso + ": " + e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Calcula el promedio del curso a partir del promedio académico de los estudiantes y lo ajusta a escala /10.
+     */
+    public double getCourseAverage(int idCurso) {
+        String sql = "SELECT AVG(e.promedio_academico) FROM estudiante e " +
+                     "JOIN curso_estudiante ce ON e.id_estudiante = ce.id_estudiante " +
+                     "WHERE ce.id_curso = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idCurso);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    double avg = rs.getDouble(1);
+                    // Ajuste a escala 0-10
+                    return avg / 10.0;
+                }
+            }
+        } catch (SQLException e) {
+            logger.severe("Error al calcular promedio del curso " + idCurso + ": " + e.getMessage());
+        }
+        return 0.0;
+    }
+
+    /**
+     * Elimina todas las asignaciones de estudiantes para un curso.
+     */
+    public boolean clearAssignments(int idCurso) {
+        String sql = "DELETE FROM curso_estudiante WHERE id_curso = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idCurso);
+            int count = ps.executeUpdate();
+            logger.info("Se eliminaron " + count + " asignaciones para curso ID=" + idCurso);
+            return true;
+        } catch (SQLException e) {
+            logger.severe("Error al limpiar asignaciones del curso " + idCurso + ": " + e.getMessage());
+            return false;
+        }
+    }
+
     // Método de prueba para diagnosticar problemas de conexión
     public void testConexion() {
         logger.info("====== INICIANDO PRUEBA DE CONEXIÓN ======");

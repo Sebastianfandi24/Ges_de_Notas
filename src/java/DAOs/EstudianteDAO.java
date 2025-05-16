@@ -443,4 +443,34 @@ public class EstudianteDAO implements CRUD<Estudiante> {
             return ps.executeUpdate() > 0;
         }
     }
+    
+    /**
+     * Obtiene la lista de estudiantes asignados al curso.
+     */
+    public List<Models.Estudiante> getAsignados(int cursoId) {
+        List<Models.Estudiante> asignados = new ArrayList<>();
+        String sql = "SELECT u.id_usu, u.nombre, u.correo, e.* FROM estudiante e " +
+                     "JOIN usuario u ON e.idUsuario = u.id_usu " +
+                     "JOIN curso_estudiante ce ON ce.id_estudiante = e.id_estudiante " +
+                     "WHERE ce.id_curso = ?";
+        try (Connection conn = conexion.crearConexion();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, cursoId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Models.Estudiante est = new Models.Estudiante();
+                    est.setId(rs.getInt("id_estudiante"));
+                    est.setNombre(rs.getString("nombre"));
+                    est.setCorreo(rs.getString("correo"));
+                    est.setNumeroIdentificacion(rs.getString("numero_identificacion"));
+                    // puedes setear otros campos si es necesario
+                    asignados.add(est);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error en getAsignados: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return asignados;
+    }
 }

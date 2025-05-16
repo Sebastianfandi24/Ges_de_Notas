@@ -85,4 +85,24 @@ public class Tarea {
     public Curso getCurso() {
         return curso;
     }
+
+    /**
+     * Determina el estado de la tarea basado en las fechas
+     * @return Estado de la tarea como cadena
+     */
+    public String getEstado() {
+        // En un sistema real este método dependería de si hay entregas y calificaciones
+        // Por ahora simularemos con la lógica de fechas
+        Date hoy = new Date();
+        
+        if (fecha_entrega == null) {
+            return "Pendiente";
+        }
+        
+        if (hoy.after(fecha_entrega)) {
+            return "Vencida";
+        } else {
+            return "Activa";
+        }
+    }
 }

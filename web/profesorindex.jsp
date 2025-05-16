@@ -137,8 +137,9 @@
               <!-- Filas de tareas pendientes se generarán dinámicamente -->
             </tbody>
           </table>
-        </div>        <div class="p-3 bg-white rounded-bottom shadow-sm">
-          <a href="profesortareas.jsp" class="btn btn-primary">Ver todas las tareas</a>
+        </div>
+        <div class="p-3 bg-white rounded-bottom shadow-sm">
+          <a href="<%=request.getContextPath()%>/profesor/tareas" class="btn btn-primary">Ver todas las tareas</a>
         </div>
       </div>
     </div>

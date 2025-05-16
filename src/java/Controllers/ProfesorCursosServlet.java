@@ -1,6 +1,7 @@
 package Controllers;
 
 import DAOs.CursoDAO;
+import DAOs.ProfesorDAO;
 import Models.*;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,20 +17,24 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.naming.Context;
+
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
+import jakarta.servlet.http.HttpSession;
 
 @WebServlet("/profesor/cursos")
 public class ProfesorCursosServlet extends HttpServlet {
     private CursoDAO cursoDAO;
+    private ProfesorDAO profesorDAO;
     private static final Logger logger = Logger.getLogger(ProfesorCursosServlet.class.getName());
     
     @Override
     public void init() throws ServletException {
         super.init();
         try {
-            // Inicializamos el DAO
+            // Inicializamos los DAOs
             cursoDAO = new CursoDAO();
+            profesorDAO = new ProfesorDAO();
             logger.info("CursoDAO inicializado correctamente");
             
             // También verificamos la conexión directamente
@@ -126,14 +131,21 @@ public class ProfesorCursosServlet extends HttpServlet {
             throws ServletException, IOException {
         try {
             logger.info("Iniciando doGet en ProfesorCursosServlet");
-            
-            // TODO: Obtener el ID del profesor de la sesión
-            int idProfesor = 1; // Por ahora hardcodeado para pruebas
+            // Verificar sesión y obtener usuario
+            HttpSession session = request.getSession(false);
+            if (session == null || session.getAttribute("userId") == null) {
+                response.sendRedirect(request.getContextPath() + "/login.jsp");
+                return;
+            }
+            int userId = (int) session.getAttribute("userId");
+            Integer idProfesor = profesorDAO.getProfesorIdByUsuario(userId);
+            if (idProfesor == null) {
+                throw new ServletException("No se encontró profesor para usuario ID: " + userId);
+            }
             logger.info("Buscando cursos para profesor ID: " + idProfesor);
             
-            // Probar recuperando datos de dos formas diferentes
-            probarRecuperacionDirecta(idProfesor, request);
-            
+            // Eliminar recuperación directa; utilizaremos solo DAO
+
             // Usar el DAO para obtener los cursos
             List<Curso> cursos = cursoDAO.getCursosPorProfesor(idProfesor);
             logger.info("Cursos recuperados desde DAO: " + (cursos != null ? cursos.size() : "null"));
@@ -142,14 +154,19 @@ public class ProfesorCursosServlet extends HttpServlet {
                 List<CursoInfo> cursosInfo = new ArrayList<>();
                 for (Curso curso : cursos) {
                     CursoInfo info = new CursoInfo(curso);
+                    // Asignar número de estudiantes y promedio
+                    int count = cursoDAO.getStudentCount(curso.getId());
+                    double avg = cursoDAO.getCourseAverage(curso.getId());
+                    info.setNumEstudiantes(count);
+                    info.setPromedio(avg);
                     cursosInfo.add(info);
-                    logger.info("Agregado curso a cursosInfo: ID=" + curso.getId() + ", Nombre=" + curso.getNombre());
+                    logger.info("Agregado curso a cursosInfo: ID=" + curso.getId() + ", Nombre=" + curso.getNombre() + ", Estudiantes="+count+", Promedio="+avg);
                 }
                 request.setAttribute("cursosInfo", cursosInfo);
                 logger.info("cursosInfo agregado al request con " + cursosInfo.size() + " cursos");
-            } else {
-                logger.warning("No se encontraron cursos para el profesor ID: " + idProfesor);
-            }
+             } else {
+                 logger.warning("No se encontraron cursos para el profesor ID: " + idProfesor);
+             }
             
             request.getRequestDispatcher("/profesorcursos.jsp").forward(request, response);
             logger.info("Vista enviada al cliente");
@@ -159,91 +176,5 @@ public class ProfesorCursosServlet extends HttpServlet {
             e.printStackTrace();
             throw new ServletException(e);
         }
-    }
-    
-    /**
-     * Método para probar la recuperación directa de cursos sin usar el DAO
-     */
-    private void probarRecuperacionDirecta(int idProfesor, HttpServletRequest request) {
-        logger.info("===== PROBANDO RECUPERACIÓN DIRECTA =====");
-        
-        try {
-            Context initContext = new InitialContext();
-            Context envContext = (Context) initContext.lookup("java:comp/env");
-            DataSource dataSource = (DataSource) envContext.lookup("jdbc/GesDeNotasDB");
-            
-            List<Curso> cursosDirectos = new ArrayList<>();
-            String sql = "SELECT * FROM CURSO WHERE idProfesor = ?";
-            
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
-                
-                ps.setInt(1, idProfesor);
-                ResultSet rs = ps.executeQuery();
-                
-                while (rs.next()) {
-                    Curso curso = new Curso();
-                    curso.setId(rs.getInt("id_curso"));
-                    curso.setNombre(rs.getString("nombre"));
-                    curso.setCodigo(rs.getString("codigo"));
-                    curso.setDescripcion(rs.getString("descripcion"));
-                    curso.setIdProfesor(rs.getInt("idProfesor"));
-                    
-                    cursosDirectos.add(curso);
-                    logger.info("Curso recuperado directamente: ID=" + curso.getId() + 
-                              ", Nombre=" + curso.getNombre());
-                }
-            }
-            
-            logger.info("Total cursos recuperados directamente: " + cursosDirectos.size());
-            
-            if (cursosDirectos != null && !cursosDirectos.isEmpty()) {
-                List<CursoInfo> cursosInfoDirectos = new ArrayList<>();
-                for (Curso curso : cursosDirectos) {
-                    CursoInfo info = new CursoInfo(curso);
-                    cursosInfoDirectos.add(info);
-                }
-                request.setAttribute("cursosInfoDirectos", cursosInfoDirectos);
-                logger.info("cursosInfoDirectos agregado al request con " + cursosInfoDirectos.size() + " cursos");
-            }
-        } catch (Exception e) {
-            logger.severe("Error en recuperación directa JNDI: " + e.getMessage());
-            e.printStackTrace();
-            // Fallback usando DriverManager
-            try {
-                logger.info("Intentando recuperación directa por JDBC fallback...");
-                Class.forName("com.mysql.cj.jdbc.Driver");
-                try (Connection conn = DriverManager.getConnection(
-                        "jdbc:mysql://localhost:3306/sistema_academico", "root", "")) {
-                    List<Curso> cursosFallback = new ArrayList<>();
-                    String sql = "SELECT * FROM curso WHERE idProfesor = ?";
-                    try (PreparedStatement ps2 = conn.prepareStatement(sql)) {
-                        ps2.setInt(1, idProfesor);
-                        ResultSet rs2 = ps2.executeQuery();
-                        while (rs2.next()) {
-                            Curso c = new Curso();
-                            c.setId(rs2.getInt("id_curso"));
-                            c.setNombre(rs2.getString("nombre"));
-                            c.setCodigo(rs2.getString("codigo"));
-                            c.setDescripcion(rs2.getString("descripcion"));
-                            c.setIdProfesor(rs2.getInt("idProfesor"));
-                            cursosFallback.add(c);
-                        }
-                    }
-                    logger.info("Total cursos recuperados fallback JDBC: " + cursosFallback.size());
-                    if (!cursosFallback.isEmpty()) {
-                        List<CursoInfo> infoFallback = new ArrayList<>();
-                        for (Curso cf : cursosFallback) infoFallback.add(new CursoInfo(cf));
-                        request.setAttribute("cursosInfoDirectos", infoFallback);
-                        logger.info("cursosInfoDirectos (fallback) agregado al request con " + infoFallback.size() + " cursos");
-                    }
-                }
-            } catch (Exception ex2) {
-                logger.severe("Fallback JDBC failed: " + ex2.getMessage());
-                ex2.printStackTrace();
-            }
-        }
-        
-        logger.info("===== FIN PROBANDO RECUPERACIÓN DIRECTA =====");
     }
 }

@@ -30,17 +30,32 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <c:forEach var="estudiante" items="${disponibles}">
+                                <!-- Estudiantes ya asignados (checkbox marcado) -->
+                                <c:forEach var="est" items="${asignados}">
                                     <tr>
                                         <td>
                                             <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" 
-                                                       name="estudiantes" value="${estudiante.id}">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="estudiantes" value="${est.id}" checked>
                                             </div>
                                         </td>
-                                        <td>${estudiante.nombre}</td>
-                                        <td>${estudiante.correo}</td>
-                                        <td>${estudiante.numeroIdentificacion}</td>
+                                        <td>${est.nombre}</td>
+                                        <td>${est.correo}</td>
+                                        <td>${est.numeroIdentificacion}</td>
+                                    </tr>
+                                </c:forEach>
+                                <!-- Estudiantes disponibles (checkbox desmarcado) -->
+                                <c:forEach var="est" items="${disponibles}">
+                                    <tr>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="estudiantes" value="${est.id}">
+                                            </div>
+                                        </td>
+                                        <td>${est.nombre}</td>
+                                        <td>${est.correo}</td>
+                                        <td>${est.numeroIdentificacion}</td>
                                     </tr>
                                 </c:forEach>
                             </tbody>
