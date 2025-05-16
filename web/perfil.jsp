@@ -106,19 +106,79 @@
                         Por favor ingresa un correo electrónico válido.
                     </div>
                 </div>
-            </div>
-            
-            <h5 class="section-title">Cambiar Contraseña</h5>
+            </div>            <h5 class="section-title">Cambiar Contraseña</h5>
             <div class="row mb-3">
                 <div class="col-md-12">
-                    <label for="nueva_contraseña" class="form-label">Nueva Contraseña (dejar vacío para mantener la actual)</label>
-                    <input type="password" class="form-control" id="nueva_contraseña" name="nueva_contraseña" minlength="6">
+                    <label for="nueva_contrasena" class="form-label">Nueva Contraseña (dejar vacío para mantener la actual)</label>
+                    <input type="password" class="form-control" id="nueva_contrasena" name="nueva_contrasena" minlength="6">
                     <div class="form-text">Si no deseas cambiar tu contraseña, deja este campo en blanco.</div>
                     <div class="invalid-feedback">
                         La contraseña debe tener al menos 6 caracteres.
                     </div>
                 </div>
             </div>
+            
+            <!-- Confirmación de contraseña para validación adicional -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="confirmar_contrasena" class="form-label">Confirmar Nueva Contraseña</label>
+                    <input type="password" class="form-control" id="confirmar_contrasena" name="confirmar_contrasena" minlength="6">
+                    <div class="form-text">Vuelve a ingresar la contraseña para confirmar.</div>
+                    <div class="invalid-feedback" id="confirmar-error">
+                        Las contraseñas no coinciden.
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Log para validación del formulario en el navegador
+                    console.log('[VALIDACIÓN-BROWSER] Formulario de perfil cargado correctamente');
+                    
+                    // Agregar validación al campo de contraseña
+                    const passwordField = document.getElementById('nueva_contrasena');
+                    const confirmField = document.getElementById('confirmar_contrasena');
+                    const form = document.querySelector('form');
+                    
+                    // Validación de la contraseña
+                    passwordField.addEventListener('input', function() {
+                        console.log('[VALIDACIÓN-BROWSER] Campo de contraseña modificado, longitud: ' + this.value.length);
+                        if (this.value.length > 0 && this.value.length < 6) {
+                            this.setCustomValidity('La contraseña debe tener al menos 6 caracteres');
+                        } else {
+                            this.setCustomValidity('');
+                        }
+                        if (confirmField.value !== this.value) {
+                            confirmField.setCustomValidity('Las contraseñas no coinciden');
+                        } else {
+                            confirmField.setCustomValidity('');
+                        }
+                    });
+                    confirmField.addEventListener('input', function() {
+                        if (this.value !== passwordField.value) {
+                            this.setCustomValidity('Las contraseñas no coinciden');
+                        } else {
+                            this.setCustomValidity('');
+                            console.log('[VALIDACIÓN-BROWSER] Contraseñas coinciden correctamente');
+                        }
+                    });
+                    // Interceptar envío del formulario para validar
+                    form.addEventListener('submit', function(e) {
+                        if (passwordField.value.length > 0) {
+                            if (passwordField.value !== confirmField.value) {
+                                e.preventDefault();
+                                confirmField.setCustomValidity('Las contraseñas no coinciden');
+                                console.log('[VALIDACIÓN-BROWSER] ERROR: Las contraseñas no coinciden');
+                                return false;
+                            } else {
+                                console.log('[VALIDACIÓN-BROWSER] Las contraseñas coinciden, enviando formulario');
+                            }
+                        } else {
+                            console.log('[VALIDACIÓN-BROWSER] No se enviará nueva contraseña');
+                        }
+                    });
+                });
+            </script>
             
             <!-- Campos específicos para Estudiante -->
             <c:if test="${userRol == 1}">

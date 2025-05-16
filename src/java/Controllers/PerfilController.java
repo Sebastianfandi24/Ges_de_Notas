@@ -71,18 +71,43 @@ public class PerfilController extends HttpServlet {
         
         int userId = (int) session.getAttribute("userId");
         int userRol = (int) session.getAttribute("userRol");
-        
-        // Recopilar datos del formulario
+          // Recopilar datos del formulario
         Map<String, Object> datosUsuario = new HashMap<>();
         datosUsuario.put("id_usu", userId);
         datosUsuario.put("id_rol", userRol);
         datosUsuario.put("nombre", request.getParameter("nombre"));
         datosUsuario.put("correo", request.getParameter("correo"));
         
+        System.out.println("[VALIDACIÓN] ---- INICIO ACTUALIZACIÓN DE PERFIL ----");
+        System.out.println("[VALIDACIÓN] Usuario ID: " + userId + ", Rol: " + userRol);
+        
         // Solo procesar la contraseña si se proporcionó una nueva
-        String nuevaContraseña = request.getParameter("nueva_contraseña");
-        if (nuevaContraseña != null && !nuevaContraseña.isEmpty()) {
-            datosUsuario.put("nueva_contraseña", nuevaContraseña);
+        String nuevaContrasena = request.getParameter("nueva_contrasena");
+        String confirmarContrasena = request.getParameter("confirmar_contrasena");
+        
+        if (nuevaContrasena != null && !nuevaContrasena.isEmpty()) {
+            System.out.println("[VALIDACIÓN] Se detectó nueva contraseña, longitud: " + nuevaContrasena.length() + " caracteres");
+            
+            // Verificar que las contraseñas coinciden (doble verificación)
+            if (confirmarContrasena != null && nuevaContrasena.equals(confirmarContrasena)) {
+                System.out.println("[VALIDACIÓN] Contraseñas coinciden, se procederá a actualizar");
+                datosUsuario.put("nueva_contrasena", nuevaContrasena);
+            } else {
+                System.out.println("[VALIDACIÓN] ERROR: Las contraseñas no coinciden o confirmación vacía");
+                request.setAttribute("error", "Las contraseñas no coinciden. Por favor, inténtalo nuevamente.");
+                try {
+                    Map<String, Object> perfilUsuario = perfilDAO.obtenerPerfilUsuario(userId, userRol);
+                    request.setAttribute("perfil", perfilUsuario);
+                } catch (SQLException e) {
+                    System.err.println("[VALIDACIÓN-ERROR] Error al obtener perfil: " + e.getMessage());
+                    e.printStackTrace();
+                    request.setAttribute("error", "Ocurrió un error al cargar tu información de perfil: " + e.getMessage());
+                }
+                request.getRequestDispatcher("/perfil.jsp").forward(request, response);
+                return;
+            }
+        } else {
+            System.out.println("[VALIDACIÓN] No se ha proporcionado nueva contraseña, campo vacío o nulo");
         }
         
         // Procesar datos específicos según el rol
@@ -97,25 +122,30 @@ public class PerfilController extends HttpServlet {
                 procesarDatosAdministrador(request, datosUsuario);
                 break;
         }
-        
-        try {
+          try {
+            System.out.println("[VALIDACIÓN] Enviando datos al DAO para actualización: " + datosUsuario.keySet());
             boolean actualizado = perfilDAO.actualizarPerfilUsuario(datosUsuario);
             if (actualizado) {
                 // Actualizar el nombre en la sesión si ha cambiado
                 session.setAttribute("userNombre", datosUsuario.get("nombre"));
                 request.setAttribute("mensaje", "Perfil actualizado exitosamente");
+                System.out.println("[VALIDACIÓN] Actualización exitosa del perfil");
             } else {
                 request.setAttribute("error", "No se pudo actualizar el perfil");
+                System.out.println("[VALIDACIÓN] No se pudo actualizar el perfil, actualizado = false");
             }
-            
-            // Recargar los datos actualizados
+              // Recargar los datos actualizados
             Map<String, Object> perfilUsuario = perfilDAO.obtenerPerfilUsuario(userId, userRol);
             request.setAttribute("perfil", perfilUsuario);
+            System.out.println("[VALIDACIÓN] Datos actualizados recuperados para mostrar en el perfil");
             
         } catch (SQLException e) {
-            System.err.println("Error al actualizar perfil de usuario: " + e.getMessage());
+            System.err.println("[VALIDACIÓN-ERROR] Error al actualizar perfil: " + e.getMessage());
+            e.printStackTrace();
             request.setAttribute("error", "Ocurrió un error al actualizar tu perfil: " + e.getMessage());
         }
+        
+        System.out.println("[VALIDACIÓN] ---- FIN ACTUALIZACIÓN DE PERFIL ----");
         
         request.getRequestDispatcher("/perfil.jsp").forward(request, response);
     }

@@ -25,13 +25,17 @@ public class PerfilDAO {
             throw new SQLException("No se pudo establecer la conexión a la base de datos");
         }
         this.conexion = conn;
-    }
-    
-    private String hashPassword(String password) throws NoSuchAlgorithmException {
+    }      private String hashPassword(String password) throws NoSuchAlgorithmException {
+        System.out.println("[PerfilDAO] Generando hash para la nueva contraseña");
+        System.out.println("[DEBUG-PASSWORD] Contraseña recibida para hash, longitud: " + password.length() + " caracteres");
+        
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] digest = md.digest(password.getBytes());
-        return DatatypeConverter.printHexBinary(digest);
-    }    // Obtener información detallada del usuario según su ID y rol
+        String hashedPassword = DatatypeConverter.printHexBinary(digest);
+        
+        System.out.println("[DEBUG-PASSWORD] Hash generado correctamente, longitud: " + hashedPassword.length() + " caracteres");
+        return hashedPassword;
+    }// Obtener información detallada del usuario según su ID y rol
     public Map<String, Object> obtenerPerfilUsuario(int userId, int rolId) throws SQLException {
         Map<String, Object> perfilUsuario = new HashMap<>();
         
@@ -175,36 +179,74 @@ public class PerfilDAO {
         }
         
         return actualizacionExitosa;
-    }
-    
-    private boolean actualizarDatosBasicosUsuario(Map<String, Object> datosUsuario) throws SQLException {
-        String sql = "UPDATE USUARIO SET nombre = ?, correo = ? WHERE id_usu = ?";
+    }    private boolean actualizarDatosBasicosUsuario(Map<String, Object> datosUsuario) throws SQLException {
+        boolean tieneNuevaContrasena = datosUsuario.containsKey("nueva_contrasena") && 
+                datosUsuario.get("nueva_contrasena") != null && 
+                !((String)datosUsuario.get("nueva_contrasena")).isEmpty();
         
-        // Si se incluye una nueva contraseña, actualizarla
-        if (datosUsuario.containsKey("nueva_contraseña") && datosUsuario.get("nueva_contraseña") != null && 
-            !((String)datosUsuario.get("nueva_contraseña")).isEmpty()) {
-            sql = "UPDATE USUARIO SET nombre = ?, correo = ?, contraseña = ? WHERE id_usu = ?";
+        String sql;
+        
+        if (tieneNuevaContrasena) {
+            sql = "UPDATE usuario SET nombre = ?, correo = ?, contraseña = ? WHERE id_usu = ?";
+            System.out.println("[VALIDACIÓN] Actualizando usuario con nueva contraseña. SQL: " + sql);
+        } else {
+            sql = "UPDATE usuario SET nombre = ?, correo = ? WHERE id_usu = ?";
+            System.out.println("[VALIDACIÓN] Actualizando usuario sin cambio de contraseña. SQL: " + sql);
         }
         
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setString(1, (String) datosUsuario.get("nombre"));
             stmt.setString(2, (String) datosUsuario.get("correo"));
-            
-            if (datosUsuario.containsKey("nueva_contraseña") && datosUsuario.get("nueva_contraseña") != null && 
-                !((String)datosUsuario.get("nueva_contraseña")).isEmpty()) {
+            System.out.println("[VALIDACIÓN] Parámetros configurados - Nombre: " + datosUsuario.get("nombre") + ", Correo: " + datosUsuario.get("correo"));
+              if (tieneNuevaContrasena) {
                 try {
-                    String hashedPassword = hashPassword((String) datosUsuario.get("nueva_contraseña"));
-                    stmt.setString(3, hashedPassword);
-                    stmt.setInt(4, (int) datosUsuario.get("id_usu"));
+                    // Obtener y mostrar el hash de la contraseña actual
+                    String oldHash = null;
+                    try (PreparedStatement oldStmt = conexion.prepareStatement(
+                            "SELECT contraseña FROM usuario WHERE id_usu = ?")) {
+                        oldStmt.setInt(1, (int) datosUsuario.get("id_usu"));
+                        try (ResultSet rsOld = oldStmt.executeQuery()) {
+                            if (rsOld.next()) {
+                                oldHash = rsOld.getString("contraseña");
+                            }
+                        }
+                    }
+                    if (oldHash != null) {
+                        System.out.println("[VALIDACIÓN] Hash antiguo: " + oldHash.substring(0, 10) + "... (longitud: " + oldHash.length() + ")");
+                    } else {
+                        System.out.println("[VALIDACIÓN] No se encontró hash antiguo para el usuario");
+                    }
+                    // Generar nuevo hash y mostrarlo
+                    String hashedPassword = hashPassword((String) datosUsuario.get("nueva_contrasena"));
+                    System.out.println("[VALIDACIÓN] Nuevo hash: " + hashedPassword.substring(0, 10) + "... (longitud: " + hashedPassword.length() + ")");
+                     stmt.setString(3, hashedPassword);
+                     stmt.setInt(4, (int) datosUsuario.get("id_usu"));
+                    System.out.println("[VALIDACIÓN] Contraseña hasheada y agregada a la consulta SQL.");
+                     System.out.println("[VALIDACIÓN] Parámetro ID usuario: " + datosUsuario.get("id_usu") + " (posición 4)");
+                     
+                     // Inspección detallada de la consulta SQL preparada
+                     System.out.println("[DEBUG-SQL] Consulta preparada con parámetros:");
+                     System.out.println("[DEBUG-SQL] 1. Nombre: " + datosUsuario.get("nombre"));
+                     System.out.println("[DEBUG-SQL] 2. Correo: " + datosUsuario.get("correo"));
+                     System.out.println("[DEBUG-SQL] 3. Contraseña hash: " + hashedPassword.substring(0, 10) + "...");
+                     System.out.println("[DEBUG-SQL] 4. ID Usuario: " + datosUsuario.get("id_usu"));
                 } catch (NoSuchAlgorithmException e) {
+                    System.err.println("[PerfilDAO] Error al procesar la contraseña: " + e.getMessage());
+                    e.printStackTrace();
                     throw new SQLException("Error al procesar la contraseña", e);
                 }
-            } else {
+             } else {
                 stmt.setInt(3, (int) datosUsuario.get("id_usu"));
+                System.out.println("[VALIDACIÓN] No hay nueva contraseña, estableciendo ID usuario: " + datosUsuario.get("id_usu") + " (posición 3)");
             }
             
             int filasActualizadas = stmt.executeUpdate();
+            System.out.println("[PerfilDAO] Filas actualizadas al modificar usuario: " + filasActualizadas);
             return filasActualizadas > 0;
+        } catch (SQLException e) {
+            System.err.println("[PerfilDAO] Error al actualizar datos básicos del usuario: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
       private boolean actualizarDatosEstudiante(Map<String, Object> datosUsuario) throws SQLException {
