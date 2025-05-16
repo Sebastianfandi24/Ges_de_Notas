@@ -214,7 +214,7 @@ public class ProfesorControllerServlet extends HttpServlet {
                                 List<Nota> notas = notaDAO.getNotasPorTarea(tarea.getId());
                                 // Si hay menos notas que estudiantes, hay tareas por calificar
                                 List<Estudiante> estudiantesCurso = cursoDAO.getEstudiantesPorCurso(tarea.getIdCurso());
-                                if (notas.size() < estudiantesCurso.size()) {
+                                if (notas.isEmpty() || notas.size() < estudiantesCurso.size()) {
                                     tareasPendientes++;
                                 }
                             }
@@ -354,8 +354,8 @@ public class ProfesorControllerServlet extends HttpServlet {
                                 List<Estudiante> estudiantes = cursoDAO.getEstudiantesPorCurso(tarea.getIdCurso());
                                 List<Nota> notas = notaDAO.getNotasPorTarea(tarea.getId());
                                 
-                                // Si hay menos notas que estudiantes, hay tareas por calificar
-                                if (notas.size() < estudiantes.size()) {
+                                // Si no hay notas o hay menos notas que estudiantes, hay tareas por calificar
+                                if (notas.isEmpty() || notas.size() < estudiantes.size()) {
                                     JSONObject tareaJson = new JSONObject();
                                     tareaJson.put("id", tarea.getId());
                                     tareaJson.put("titulo", tarea.getTitulo());
