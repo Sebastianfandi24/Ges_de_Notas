@@ -121,11 +121,10 @@ public class DiagnosticoServlet extends HttpServlet {    private static final Lo
                         JSONObject tarea = new JSONObject();
                         tarea.put("id", t.getId());
                         tarea.put("titulo", t.getTitulo());
-                        tarea.put("curso_id", t.getIdCurso());
-                        tarea.put("fecha_asignacion", t.getFecha_asignacion() != null ? 
-                                 t.getFecha_asignacion().toString() : "No asignada");
-                        tarea.put("fecha_entrega", t.getFecha_entrega() != null ? 
-                                 t.getFecha_entrega().toString() : "Sin fecha límite");
+                        tarea.put("curso_id", t.getIdCurso());                        tarea.put("fecha_asignacion", t.getFechaAsignacion() != null ? 
+                                 t.getFechaAsignacion().toString() : "No asignada");
+                        tarea.put("fecha_entrega", t.getFechaEntrega() != null ? 
+                                 t.getFechaEntrega().toString() : "Sin fecha límite");
                         tareasArray.put(tarea);
                     }
                     profesorInfo.put("tareas", tareasArray);

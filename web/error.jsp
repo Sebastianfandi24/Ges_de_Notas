@@ -30,12 +30,25 @@
     <div class="container">
         <div class="error-container text-center">
             <div class="error-icon">⚠️</div>
-            <h2 class="mb-4">Se ha producido un error</h2>
-            
+            <h2 class="mb-4">Se ha producido un error</h2>            
             <% if(request.getAttribute("error") != null) { %>
                 <div class="alert alert-danger">
                     <%= request.getAttribute("error") %>
                 </div>
+                
+                <% if(request.getAttribute("errorDetails") != null) { %>
+                    <div class="card mt-3 mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Detalles técnicos del error</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Tipo de error:</strong> <%= request.getAttribute("errorDetails") %></p>
+                            <% if(request.getAttribute("errorStackTrace") != null) { %>
+                                <p><strong>Ubicación:</strong> <%= request.getAttribute("errorStackTrace") %></p>
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
             <% } else { %>
                 <div class="alert alert-danger">
                     Ha ocurrido un error inesperado. Por favor, intente de nuevo más tarde.

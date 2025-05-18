@@ -80,10 +80,9 @@
                                     <tr>
                                         <td>${tarea.id}</td>
                                         <td>${tarea.titulo}</td>
-                                        <td>${tarea.idCurso}</td>
-                                        <td>${tarea.curso_nombre}</td>
-                                        <td><fmt:formatDate value="${tarea.fecha_asignacion}" pattern="dd/MM/yyyy"/></td>
-                                        <td><fmt:formatDate value="${tarea.fecha_entrega}" pattern="dd/MM/yyyy"/></td>
+                                        <td>${tarea.idCurso}</td>                                        <td>${tarea.cursoNombre}</td>
+                                        <td><fmt:formatDate value="${tarea.fechaAsignacion}" pattern="dd/MM/yyyy"/></td>
+                                        <td><fmt:formatDate value="${tarea.fechaEntrega}" pattern="dd/MM/yyyy"/></td>
                                     </tr>
                                 </c:forEach>
                             </tbody>

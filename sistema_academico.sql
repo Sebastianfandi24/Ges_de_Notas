@@ -232,13 +232,25 @@ INSERT INTO `curso` (`id_curso`, `nombre`, `codigo`, `descripcion`, `idProfesor`
 (1, 'Introducción a la Programación', 'CS101', 'Curso introductorio de programación.', 1),
 (2, 'Bases de Datos', 'CS102', 'Curso sobre diseño y gestión de bases de datos.', 1);
 
+-- Actualizar las fechas de las tareas para que sean más recientes
+UPDATE `tarea` 
+SET `fecha_asignacion` = DATE_ADD(CURRENT_DATE(), INTERVAL -15 DAY),
+    `fecha_entrega` = DATE_ADD(CURRENT_DATE(), INTERVAL 15 DAY);
+
 INSERT INTO `curso_estudiante` (`id_curso`, `id_estudiante`) VALUES
 (1, 1),
 (2, 1);
 
+-- Primero insertamos las tareas con fechas actuales
 INSERT INTO `tarea` (`id_tarea`, `titulo`, `descripcion`, `fecha_asignacion`, `fecha_entrega`, `id_curso`) VALUES
-(1, 'Tarea 1', 'Resolver ejercicios de lógica.', '2023-04-01 08:00:00', '2023-04-15 23:59:59', 1),
-(2, 'Tarea 2', 'Diseñar una base de datos simple.', '2023-04-05 08:00:00', '2023-04-20 23:59:59', 2);
+(1, 'Tarea 1', 'Resolver ejercicios de lógica.', 
+    DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 DAY), 
+    DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 12 DAY), 
+    1),
+(2, 'Tarea 2', 'Diseñar una base de datos simple.', 
+    DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 DAY), 
+    DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 12 DAY), 
+    2);
 
 INSERT INTO `nota_tarea` (`id_nota`, `id_tarea`, `id_estudiante`, `nota`, `fecha_evaluacion`, `comentario`) VALUES
 (1, 1, 1, 92.50, '2023-04-16 14:30:00', 'Buen desempeño'),

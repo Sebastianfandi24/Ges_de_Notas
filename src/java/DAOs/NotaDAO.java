@@ -165,9 +165,7 @@ public class NotaDAO implements CRUD<Nota> {
         } finally {
             try { if (ps != null) ps.close(); if (conn != null) conn.close(); } catch (SQLException ex) { logger.severe(ex.getMessage()); }
         }
-    }
-
-    /**
+    }    /**
      * Obtiene todas las notas asociadas a una tarea específica.
      */
     public List<Nota> getNotasPorTarea(int idTarea) {
@@ -178,6 +176,11 @@ public class NotaDAO implements CRUD<Nota> {
         
         try {
             conn = conexion.crearConexion();
+            if (conn == null) {
+                logger.severe("No se pudo establecer conexión a la base de datos en getNotasPorTarea");
+                return notas; // Retornar lista vacía en lugar de null
+            }
+            
             ps = conn.prepareStatement(sql);
             ps.setInt(1, idTarea);
             rs = ps.executeQuery();
@@ -187,18 +190,41 @@ public class NotaDAO implements CRUD<Nota> {
                 nota.setIdNota(rs.getInt("id_nota"));
                 nota.setIdTarea(rs.getInt("id_tarea"));
                 nota.setIdEstudiante(rs.getInt("id_estudiante"));
-                nota.setNota(rs.getDouble("nota"));
-                nota.setComentario(rs.getString("comentario"));
-                nota.setFechaEvaluacion(rs.getDate("fecha_evaluacion"));
+                
+                // Manejar explícitamente posibles nulos en la nota
+                double valorNota = rs.getDouble("nota");
+                if (!rs.wasNull()) {
+                    nota.setNota(valorNota);
+                } else {
+                    // Si la nota es NULL en la base de datos, asignar un valor predeterminado o indicador
+                    nota.setNota(0.0); // O cualquier otro valor que indique "sin calificación"
+                }
+                
+                String comentario = rs.getString("comentario");
+                nota.setComentario(comentario); // getString ya maneja nulos (devuelve null)
+                
+                java.sql.Date fechaSQL = rs.getDate("fecha_evaluacion");
+                if (fechaSQL != null) {
+                    nota.setFechaEvaluacion(new Date(fechaSQL.getTime()));
+                }
+                
                 notas.add(nota);
             }
             
         } catch (SQLException e) {
             logger.severe("Error al obtener notas por tarea: " + e.getMessage());
+            e.printStackTrace(); // Añadir stack trace para mejor diagnóstico
         } finally {
-            try { if (rs != null) rs.close(); if (ps != null) ps.close(); if (conn != null) conn.close(); } catch (SQLException ex) { logger.severe(ex.getMessage()); }
+            try { 
+                if (rs != null) rs.close(); 
+                if (ps != null) ps.close(); 
+                if (conn != null) conn.close(); 
+            } catch (SQLException ex) { 
+                logger.severe("Error cerrando recursos: " + ex.getMessage()); 
+            }
         }
         
+        logger.info("getNotasPorTarea(" + idTarea + ") - Notas recuperadas: " + notas.size());
         return notas;
     }
 

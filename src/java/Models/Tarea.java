@@ -3,36 +3,37 @@ package Models;
 import java.util.Date;
 
 public class Tarea {
-    private int id_tarea;
+    private int idTarea;
     private String titulo;
     private String descripcion;
-    private Date fecha_asignacion;
-    private Date fecha_entrega;
-    private int id_curso;
-    private String curso_nombre; // Campo auxiliar para mostrar el nombre del curso
+    private Date fechaAsignacion;
+    private Date fechaEntrega;
+    private int idCurso;
+    private String cursoNombre; // Campo auxiliar para mostrar el nombre del curso
     private Curso curso; // Relación con la clase Curso
+    private String estado; // Estado calculado de la tarea
     
     public Tarea() {
         super();
         this.curso = null;
     }
     
-    public Tarea(int id_tarea, String titulo, String descripcion, Date fecha_asignacion,
-            Date fecha_entrega, int id_curso) {
-        this.id_tarea = id_tarea;
+    public Tarea(int idTarea, String titulo, String descripcion, Date fechaAsignacion,
+            Date fechaEntrega, int idCurso) {
+        this.idTarea = idTarea;
         this.titulo = titulo;
         this.descripcion = descripcion;
-        this.fecha_asignacion = fecha_asignacion;
-        this.fecha_entrega = fecha_entrega;
-        this.id_curso = id_curso;
+        this.fechaAsignacion = fechaAsignacion;
+        this.fechaEntrega = fechaEntrega;
+        this.idCurso = idCurso;
     }
 
     public int getId() {
-        return id_tarea;
+        return idTarea;
     }
 
-    public void setId(int id_tarea) {
-        this.id_tarea = id_tarea;
+    public void setId(int idTarea) {
+        this.idTarea = idTarea;
     }
 
     public String getTitulo() {
@@ -51,39 +52,48 @@ public class Tarea {
         this.descripcion = descripcion;
     }
 
-    public Date getFecha_asignacion() {
-        return fecha_asignacion;
+    public Date getFechaAsignacion() {
+        return fechaAsignacion;
     }
 
-    public void setFecha_asignacion(Date fecha_asignacion) {
-        this.fecha_asignacion = fecha_asignacion;
+    public void setFechaAsignacion(Date fechaAsignacion) {
+        this.fechaAsignacion = fechaAsignacion;
     }
 
-    public Date getFecha_entrega() {
-        return fecha_entrega;
+    public Date getFechaEntrega() {
+        return fechaEntrega;
     }
 
-    public void setFecha_entrega(Date fecha_entrega) {
-        this.fecha_entrega = fecha_entrega;
+    public void setFechaEntrega(Date fechaEntrega) {
+        this.fechaEntrega = fechaEntrega;
     }
 
     public int getIdCurso() {
-        return id_curso;
+        return idCurso;
     }
 
-    public void setId_curso(int id_curso) {
-        this.id_curso = id_curso;
-    }
-    public void setCurso_nombre(String curso_nombre) {
-        this.curso_nombre = curso_nombre;
+    public void setIdCurso(int idCurso) {
+        this.idCurso = idCurso;
     }
     
-    public String getCurso_nombre() {
-        return curso_nombre;
+    public String getCursoNombre() {
+        return cursoNombre;
+    }
+    
+    public void setCursoNombre(String cursoNombre) {
+        this.cursoNombre = cursoNombre;
     }
 
     public Curso getCurso() {
         return curso;
+    }
+
+    public void setCurso(Curso curso) {
+        this.curso = curso;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 
     /**
@@ -91,15 +101,17 @@ public class Tarea {
      * @return Estado de la tarea como cadena
      */
     public String getEstado() {
-        // En un sistema real este método dependería de si hay entregas y calificaciones
-        // Por ahora simularemos con la lógica de fechas
+        if (estado != null) {
+            return estado;
+        }
+        
         Date hoy = new Date();
         
-        if (fecha_entrega == null) {
+        if (fechaEntrega == null) {
             return "Pendiente";
         }
         
-        if (hoy.after(fecha_entrega)) {
+        if (hoy.after(fechaEntrega)) {
             return "Vencida";
         } else {
             return "Activa";

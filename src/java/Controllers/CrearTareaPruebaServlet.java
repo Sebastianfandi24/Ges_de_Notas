@@ -69,13 +69,13 @@ public class CrearTareaPruebaServlet extends HttpServlet {
             
             // Fecha de asignación: hoy
             Date fechaAsignacion = new Date();
-            tarea.setFecha_asignacion(fechaAsignacion);
+            tarea.setFechaAsignacion(fechaAsignacion);
             
             // Fecha de entrega: 7 días después
             Date fechaEntrega = new Date(fechaAsignacion.getTime() + 7 * 24 * 60 * 60 * 1000);
-            tarea.setFecha_entrega(fechaEntrega);
+            tarea.setFechaEntrega(fechaEntrega);
             
-            tarea.setId_curso(idCurso);
+            tarea.setIdCurso(idCurso);
             
             // Guardar la tarea
             boolean creado = tareaDAO.create(tarea);

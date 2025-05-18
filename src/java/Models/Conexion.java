@@ -39,4 +39,19 @@ public class Conexion {
             return null;
         }
     }
+
+    public static boolean testConnection() {
+        try {
+            Connection testConn = getConnection();
+            if (testConn != null && !testConn.isClosed()) {
+                LOGGER.info("[Conexion] Test de conexión exitoso");
+                return true;
+            }
+            LOGGER.warning("[Conexion] Test de conexión falló - La conexión es nula o está cerrada");
+            return false;
+        } catch (SQLException e) {
+            LOGGER.severe("[Conexion] Test de conexión falló: " + e.getMessage());
+            return false;
+        }
+    }
 }

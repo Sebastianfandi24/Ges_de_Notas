@@ -15,6 +15,7 @@ import java.io.PrintWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Date;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -102,37 +103,37 @@ public class ProfesorControllerServlet extends HttpServlet {
                     
                 case "tareas":
                     if (splits.length > 2) {
-                        if (splits[2].equals("por-curso")) {
-                            int idCurso = Integer.parseInt(request.getParameter("id_curso"));
-                            System.out.println("[ProfesorControllerServlet] Consultando tareas del curso ID: " + idCurso);
-                            List<Tarea> tareas = tareaDAO.getTareasPorCurso(idCurso);
-                            JSONArray tArr = new JSONArray();
-                            for (Tarea tObj : tareas) {
-                                JSONObject o = new JSONObject();
-                                o.put("id_tarea", tObj.getId());
-                                o.put("titulo", tObj.getTitulo());
-                                o.put("fecha_entrega", tObj.getFecha_entrega().toString());
-                                o.put("id_curso", tObj.getIdCurso());
-                                tArr.put(o);
-                            }
-                            logger.info("Tareas JSON: " + tArr.toString());
-                            out.print(tArr.toString());
-                        } else {
-                            int id = Integer.parseInt(splits[2]);
-                            System.out.println("[ProfesorControllerServlet] Consultando tarea ID: " + id);
-                            Tarea tarea = tareaDAO.read(id);
+                        int idTarea = Integer.parseInt(splits[2]);
+                        Tarea tObj = tareaDAO.read(idTarea);
+                        if (tObj != null) {
                             JSONObject o = new JSONObject();
-                            o.put("id_tarea", tarea.getId());
-                            o.put("titulo", tarea.getTitulo());
-                            o.put("descripcion", tarea.getDescripcion());
-                            o.put("fecha_entrega", tarea.getFecha_entrega().toString());
-                            o.put("id_curso", tarea.getIdCurso());
-                            logger.info("Tarea JSON: " + o.toString());
+                            o.put("id", tObj.getId());
+                            o.put("titulo", tObj.getTitulo());
+                            o.put("descripcion", tObj.getDescripcion());
+                            o.put("id_curso", tObj.getIdCurso());
+                            o.put("fecha_asignacion", tObj.getFechaAsignacion().toString());
+                            o.put("fecha_entrega", tObj.getFechaEntrega().toString());
                             out.print(o.toString());
+                        } else {
+                            response.sendError(HttpServletResponse.SC_NOT_FOUND);
                         }
                     } else {
-                        System.out.println("[ProfesorControllerServlet] Error - Petición de tareas inválida");
-                        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                        int idCurso = request.getParameter("idCurso") != null ? 
+                                    Integer.parseInt(request.getParameter("idCurso")) : 0;
+                        List<Tarea> tareas = idCurso > 0 ? tareaDAO.getTareasPorCurso(idCurso) : 
+                                                          tareaDAO.readAll();
+                        JSONArray ja = new JSONArray();
+                        for (Tarea tarea : tareas) {
+                            JSONObject o = new JSONObject();
+                            o.put("id", tarea.getId());
+                            o.put("titulo", tarea.getTitulo());
+                            o.put("descripcion", tarea.getDescripcion());
+                            o.put("id_curso", tarea.getIdCurso());
+                            o.put("fecha_asignacion", tarea.getFechaAsignacion().toString());
+                            o.put("fecha_entrega", tarea.getFechaEntrega().toString());
+                            ja.put(o);
+                        }
+                        out.print(ja.toString());
                     }
                     break;
 
@@ -417,120 +418,69 @@ public class ProfesorControllerServlet extends HttpServlet {
             
             switch (resource) {
                 case "tareas":
-                    if (splits.length > 2 && "actualizar".equals(splits[2])) {
-                        // Log de parámetros recibidos en actualizar
-                        System.out.println("[ProfesorControllerServlet] POST /tareas/actualizar - Parámetros:");
-                        java.util.Enumeration<String> namesUpd = request.getParameterNames();
-                        while (namesUpd.hasMoreElements()) {
-                            String n = namesUpd.nextElement();
-                            System.out.println("    " + n + " = " + request.getParameter(n));
-                        }
-                        int idTarea = Integer.parseInt(request.getParameter("id_tarea"));
+                    // Editar tarea
+                    String idParam = request.getParameter("id");
+                    if (idParam != null && !idParam.isEmpty()) {
+                        int idTarea = Integer.parseInt(idParam);
                         Tarea tareaUp = tareaDAO.read(idTarea);
                         if (tareaUp != null) {
-                            tareaUp.setTitulo(request.getParameter("titulo"));
-                            tareaUp.setDescripcion(request.getParameter("descripcion"));
-                            // Actualizar curso si cambió
-                            String cursoParam = request.getParameter("cursoId");
-                            if (cursoParam != null && !cursoParam.isEmpty()) {
-                                tareaUp.setId_curso(Integer.parseInt(cursoParam));
-                            }
-                            // fecha_asignacion y fecha_entrega opcionales
-                            String asig = request.getParameter("fecha_asignacion");
-                            String entreg = request.getParameter("fecha_entrega");
+                            String titulo = request.getParameter("titulo");
+                            String desc = request.getParameter("descripcion");
+                            String asig = request.getParameter("fechaAsignacion");
+                            String entreg = request.getParameter("fechaEntrega");
+                            String curso = request.getParameter("idCurso");
+                              if (titulo != null && !titulo.isEmpty()) tareaUp.setTitulo(titulo);
+                            if (desc != null && !desc.isEmpty()) tareaUp.setDescripcion(desc);
+                            
                             try {
-                                if (asig != null && !asig.isEmpty()) tareaUp.setFecha_asignacion(dateFormat.parse(asig));
-                                if (entreg != null && !entreg.isEmpty()) tareaUp.setFecha_entrega(dateFormat.parse(entreg));
-                            } catch (java.text.ParseException pe) {
-                                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Fecha inválida");
+                                if (asig != null && !asig.isEmpty()) tareaUp.setFechaAsignacion(dateFormat.parse(asig));
+                                if (entreg != null && !entreg.isEmpty()) tareaUp.setFechaEntrega(dateFormat.parse(entreg));
+                            } catch (ParseException e) {
+                                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Formato de fecha inválido");
                                 return;
                             }
-                            boolean ok = tareaDAO.update(tareaUp);
-                            if (ok) {
-                                out.print(new JSONObject().put("message","Tarea actualizada").toString());
-                                out.flush();
-                                return;
-                            } else response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error actualizando tarea");
+                            
+                            if (curso != null && !curso.isEmpty()) tareaUp.setIdCurso(Integer.parseInt(curso));
+                            
+                            boolean actualizado = tareaDAO.update(tareaUp);
+                            if (actualizado) {
+                                response.getWriter().print("{\"status\": \"success\"}");
+                            } else {
+                                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error al actualizar tarea");
+                            }
                         } else {
                             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Tarea no encontrada");
                         }
-                        break;
-                    }
-                    if (splits.length > 2 && splits[2].equals("calificar")) {
-                        // Log de parámetros recibidos
-                        System.out.println("[ProfesorControllerServlet] POST /tareas/calificar - Parámetros:");
-                        java.util.Enumeration<String> allParams = request.getParameterNames();
-                        while (allParams.hasMoreElements()) {
-                            String nameP = allParams.nextElement();
-                            System.out.println("    " + nameP + " = " + request.getParameter(nameP));
-                        }
-                        int idTarea = Integer.parseInt(request.getParameter("id_tarea"));
-                        NotaDAO notaDao = new NotaDAO();
-                        EstudianteDAO estDao = new EstudianteDAO();
-                        java.util.Enumeration<String> params = request.getParameterNames();
-                        java.util.Set<Integer> procesados = new java.util.HashSet<>();
-                        while (params.hasMoreElements()) {
-                            String p = params.nextElement();
-                            if (p.startsWith("nota_")) {
-                                int idEst = Integer.parseInt(p.substring(5));
-                                double valor = Double.parseDouble(request.getParameter(p));
-                                String com = request.getParameter("comentario_" + idEst);
-                                // Preparar nota a crear o actualizar
-                                Nota nota = new Nota();
-                                nota.setIdTarea(idTarea);
-                                nota.setIdEstudiante(idEst);
-                                nota.setNota(valor);
-                                nota.setComentario(com == null ? "" : com);
-                                nota.setFechaEvaluacion(new java.util.Date());
-                                // Inserta o actualiza en un solo paso
-                                notaDao.createOrUpdate(nota);
-                                procesados.add(idEst);
-                            }
-                        }
-                        // Actualizar promedio general del estudiante (todas las notas)
-                        for (int idEst : procesados) {
-                            try {
-                                double prom = estDao.calcularPromedio(idEst);
-                                estDao.updatePromedioAcademico(idEst, prom);
-                                logger.info("Promedio académico actualizado Estudiante " + idEst + ": " + prom);
-                            } catch (java.sql.SQLException sqle) {
-                                logger.severe("Error actualizando promedio académico para estudiante " + idEst + ": " + sqle.getMessage());
-                            }
-                        }
-                        out.print(new JSONObject().put("message", "Calificaciones procesadas y promedios actualizados").toString());
-                        out.flush();
-                        return;
-                    } else {
-                        System.out.println("[ProfesorControllerServlet] Creando nueva tarea");
+                    } 
+                    // Crear tarea
+                    else {
                         Tarea tarea = new Tarea();
-                        tarea.setTitulo(request.getParameter("titulo"));
-                        tarea.setDescripcion(request.getParameter("descripcion"));
-                        tarea.setId_curso(Integer.parseInt(request.getParameter("id_curso")));
+                        String titulo = request.getParameter("titulo");
+                        String descripcion = request.getParameter("descripcion");
+                        String fechaEntregaStr = request.getParameter("fechaEntrega");
+                        String cursoParam = request.getParameter("idCurso");
                         
-                        try {
-                            String fechaAsignacionStr = request.getParameter("fecha_asignacion");
-                            String fechaEntregaStr = request.getParameter("fecha_entrega");
-                            
-                            if (fechaAsignacionStr != null && !fechaAsignacionStr.isEmpty()) {
-                                tarea.setFecha_asignacion(dateFormat.parse(fechaAsignacionStr));
+                        if (titulo != null && !titulo.isEmpty()) tarea.setTitulo(titulo);
+                        if (descripcion != null && !descripcion.isEmpty()) tarea.setDescripcion(descripcion);
+                        if (fechaEntregaStr != null && !fechaEntregaStr.isEmpty()) {
+                            try {
+                                tarea.setFechaEntrega(dateFormat.parse(fechaEntregaStr));
+                            } catch (ParseException e) {
+                                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Formato de fecha inválido");
+                                return;
                             }
-                            if (fechaEntregaStr != null && !fechaEntregaStr.isEmpty()) {
-                                tarea.setFecha_entrega(dateFormat.parse(fechaEntregaStr));
-                            }
-                            
-                            boolean success = tareaDAO.create(tarea);
-                            if (success) {
-                                System.out.println("[ProfesorControllerServlet] Tarea creada exitosamente");
-                                response.setStatus(HttpServletResponse.SC_CREATED);
-                                out.print(new JSONObject().put("message", "Tarea creada exitosamente").toString());
-                            } else {
-                                System.out.println("[ProfesorControllerServlet] Error al crear tarea");
-                                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error al crear tarea");
-                            }
-                        } catch (ParseException e) {
-                            System.out.println("[ProfesorControllerServlet] Error - Formato de fecha inválido: " + e.getMessage());
-                            e.printStackTrace();
-                            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Formato de fecha inválido");
+                        }
+                        if (cursoParam != null && !cursoParam.isEmpty()) {
+                            tarea.setIdCurso(Integer.parseInt(cursoParam));
+                        }
+                        
+                        tarea.setFechaAsignacion(new Date()); // Fecha actual
+                        
+                        boolean creado = tareaDAO.create(tarea);
+                        if (creado) {
+                            response.getWriter().print("{\"status\": \"success\"}");
+                        } else {
+                            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error al crear tarea");
                         }
                     }
                     break;
@@ -582,16 +532,16 @@ public class ProfesorControllerServlet extends HttpServlet {
                             String fechaEntregaStr = request.getParameter("fecha_entrega");
                             
                             if (fechaAsignacionStr != null && !fechaAsignacionStr.isEmpty()) {
-                                tarea.setFecha_asignacion(dateFormat.parse(fechaAsignacionStr));
+                                tarea.setFechaAsignacion(dateFormat.parse(fechaAsignacionStr));
                             }
                             if (fechaEntregaStr != null && !fechaEntregaStr.isEmpty()) {
-                                tarea.setFecha_entrega(dateFormat.parse(fechaEntregaStr));
+                                tarea.setFechaEntrega(dateFormat.parse(fechaEntregaStr));
                             }
                             
                             // También actualizar curso si se envió
                             String cursoParam = request.getParameter("cursoId");
                             if (cursoParam != null && !cursoParam.isEmpty()) {
-                                tarea.setId_curso(Integer.parseInt(cursoParam));
+                                tarea.setIdCurso(Integer.parseInt(cursoParam));
                             }
                             
                             boolean success = tareaDAO.update(tarea);

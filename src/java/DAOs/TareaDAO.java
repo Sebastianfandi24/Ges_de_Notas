@@ -6,18 +6,21 @@ import Models.Tarea;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public class TareaDAO implements CRUD<Tarea> {
     private final Conexion conexion;
     private Connection conn;
     private PreparedStatement ps;
     private ResultSet rs;
+    private static final Logger logger = Logger.getLogger(TareaDAO.class.getName());
     
     public TareaDAO() {
         this.conexion = new Conexion();
     }
     
-    @Override
+    @Override 
     public boolean create(Tarea tarea) {
         String sql = "INSERT INTO TAREA (titulo, descripcion, fecha_asignacion, fecha_entrega, id_curso) VALUES (?, ?, ?, ?, ?)";
         
@@ -26,22 +29,22 @@ public class TareaDAO implements CRUD<Tarea> {
             ps = conn.prepareStatement(sql);
             ps.setString(1, tarea.getTitulo());
             ps.setString(2, tarea.getDescripcion());
-            ps.setDate(3, tarea.getFecha_asignacion() != null ? new java.sql.Date(tarea.getFecha_asignacion().getTime()) : null);
-            ps.setDate(4, tarea.getFecha_entrega() != null ? new java.sql.Date(tarea.getFecha_entrega().getTime()) : null);
+            ps.setDate(3, tarea.getFechaAsignacion() != null ? new java.sql.Date(tarea.getFechaAsignacion().getTime()) : null);
+            ps.setDate(4, tarea.getFechaEntrega() != null ? new java.sql.Date(tarea.getFechaEntrega().getTime()) : null);
             ps.setInt(5, tarea.getIdCurso());
             
             int resultado = ps.executeUpdate();
             return resultado > 0;
             
         } catch (SQLException e) {
-            System.out.println("Error al crear tarea - " + e.getMessage());
+            logger.severe("Error al crear tarea - " + e.getMessage());
             return false;
         } finally {
             try {
                 if (ps != null) ps.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.out.println("Error al cerrar conexiones - " + e.getMessage());
+                logger.warning("Error al cerrar conexiones - " + e.getMessage());
             }
         }
     }
@@ -54,23 +57,27 @@ public class TareaDAO implements CRUD<Tarea> {
             ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, tarea.getTitulo());
             ps.setString(2, tarea.getDescripcion());
-            ps.setDate(3, tarea.getFecha_asignacion() != null ? new java.sql.Date(tarea.getFecha_asignacion().getTime()) : null);
-            ps.setDate(4, tarea.getFecha_entrega() != null ? new java.sql.Date(tarea.getFecha_entrega().getTime()) : null);
+            ps.setDate(3, tarea.getFechaAsignacion() != null ? new java.sql.Date(tarea.getFechaAsignacion().getTime()) : null);
+            ps.setDate(4, tarea.getFechaEntrega() != null ? new java.sql.Date(tarea.getFechaEntrega().getTime()) : null);
             ps.setInt(5, tarea.getIdCurso());
 
             int affected = ps.executeUpdate();
             if (affected == 0) {
                 return -1;
             }
+            
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) {
                     return keys.getInt(1);
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Error al crear tarea y obtener ID - " + e.getMessage());
+            logger.severe("Error al crear tarea y obtener ID - " + e.getMessage());
         } finally {
-            try { if (ps != null) ps.close(); if (conn != null) conn.close(); } catch (SQLException ignored) {}
+            try {
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+            } catch (SQLException ignored) {}
         }
         return -1;
     }
@@ -93,21 +100,21 @@ public class TareaDAO implements CRUD<Tarea> {
                 tarea.setId(rs.getInt("id_tarea"));
                 tarea.setTitulo(rs.getString("titulo"));
                 tarea.setDescripcion(rs.getString("descripcion"));
-                tarea.setFecha_asignacion(rs.getDate("fecha_asignacion"));
-                tarea.setFecha_entrega(rs.getDate("fecha_entrega"));
-                tarea.setId_curso(rs.getInt("id_curso"));
-                tarea.setCurso_nombre(rs.getString("curso_nombre"));
+                tarea.setFechaAsignacion(rs.getDate("fecha_asignacion"));
+                tarea.setFechaEntrega(rs.getDate("fecha_entrega"));
+                tarea.setIdCurso(rs.getInt("id_curso"));
+                tarea.setCursoNombre(rs.getString("curso_nombre"));
             }
             
         } catch (SQLException e) {
-            System.out.println("Error al leer tarea - " + e.getMessage());
+            logger.severe("Error al leer tarea - " + e.getMessage());
         } finally {
             try {
                 if (rs != null) rs.close();
                 if (ps != null) ps.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.out.println("Error al cerrar conexiones - " + e.getMessage());
+                logger.warning("Error al cerrar conexiones - " + e.getMessage());
             }
         }
         
@@ -130,22 +137,22 @@ public class TareaDAO implements CRUD<Tarea> {
                 tarea.setId(rs.getInt("id_tarea"));
                 tarea.setTitulo(rs.getString("titulo"));
                 tarea.setDescripcion(rs.getString("descripcion"));
-                tarea.setFecha_asignacion(rs.getDate("fecha_asignacion"));
-                tarea.setFecha_entrega(rs.getDate("fecha_entrega"));
-                tarea.setId_curso(rs.getInt("id_curso"));
-                tarea.setCurso_nombre(rs.getString("curso_nombre"));
+                tarea.setFechaAsignacion(rs.getDate("fecha_asignacion"));
+                tarea.setFechaEntrega(rs.getDate("fecha_entrega"));
+                tarea.setIdCurso(rs.getInt("id_curso"));
+                tarea.setCursoNombre(rs.getString("curso_nombre"));
                 tareas.add(tarea);
             }
             
         } catch (SQLException e) {
-            System.out.println("Error al leer todas las tareas - " + e.getMessage());
+            logger.severe("Error al leer todas las tareas - " + e.getMessage());
         } finally {
             try {
                 if (rs != null) rs.close();
                 if (ps != null) ps.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.out.println("Error al cerrar conexiones - " + e.getMessage());
+                logger.warning("Error al cerrar conexiones - " + e.getMessage());
             }
         }
         
@@ -161,49 +168,55 @@ public class TareaDAO implements CRUD<Tarea> {
             ps = conn.prepareStatement(sql);
             ps.setString(1, tarea.getTitulo());
             ps.setString(2, tarea.getDescripcion());
-            ps.setDate(3, tarea.getFecha_asignacion() != null ? new java.sql.Date(tarea.getFecha_asignacion().getTime()) : null);
-            ps.setDate(4, tarea.getFecha_entrega() != null ? new java.sql.Date(tarea.getFecha_entrega().getTime()) : null);
+            ps.setDate(3, tarea.getFechaAsignacion() != null ? new java.sql.Date(tarea.getFechaAsignacion().getTime()) : null);
+            ps.setDate(4, tarea.getFechaEntrega() != null ? new java.sql.Date(tarea.getFechaEntrega().getTime()) : null);
             ps.setInt(5, tarea.getIdCurso());
             ps.setInt(6, tarea.getId());
             
             int resultado = ps.executeUpdate();
-            // Si no hay cambios reales, MySQL devuelve 0, pero consideramos éxito si se encontró el registro
             return true;
             
         } catch (SQLException e) {
-            System.out.println("Error al actualizar tarea - " + e.getMessage());
+            logger.severe("Error al actualizar tarea - " + e.getMessage());
             return false;
         } finally {
             try {
                 if (ps != null) ps.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.out.println("Error al cerrar conexiones - " + e.getMessage());
+                logger.warning("Error al cerrar conexiones - " + e.getMessage());
             }
         }
     }
     
     @Override
     public boolean delete(int id) {
+        // Eliminar notas asociadas antes de eliminar la tarea
+        String sqlChild = "DELETE FROM nota_tarea WHERE id_tarea = ?";
         String sql = "DELETE FROM TAREA WHERE id_tarea = ?";
         
         try {
             conn = conexion.crearConexion();
+            // Eliminar registros de nota_tarea
+            ps = conn.prepareStatement(sqlChild);
+            ps.setInt(1, id);
+            ps.executeUpdate();
+            ps.close();
+            // Eliminar la tarea
             ps = conn.prepareStatement(sql);
             ps.setInt(1, id);
-            
             int resultado = ps.executeUpdate();
             return resultado > 0;
             
         } catch (SQLException e) {
-            System.out.println("Error al eliminar tarea - " + e.getMessage());
+            logger.severe("Error al eliminar tarea - " + e.getMessage());
             return false;
         } finally {
             try {
                 if (ps != null) ps.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.out.println("Error al cerrar conexiones - " + e.getMessage());
+                logger.warning("Error al cerrar conexiones - " + e.getMessage());
             }
         }
     }
@@ -225,22 +238,22 @@ public class TareaDAO implements CRUD<Tarea> {
                 tarea.setId(rs.getInt("id_tarea"));
                 tarea.setTitulo(rs.getString("titulo"));
                 tarea.setDescripcion(rs.getString("descripcion"));
-                tarea.setFecha_asignacion(rs.getDate("fecha_asignacion"));
-                tarea.setFecha_entrega(rs.getDate("fecha_entrega"));
-                tarea.setId_curso(rs.getInt("id_curso"));
-                tarea.setCurso_nombre(rs.getString("curso_nombre"));
+                tarea.setFechaAsignacion(rs.getDate("fecha_asignacion"));
+                tarea.setFechaEntrega(rs.getDate("fecha_entrega"));
+                tarea.setIdCurso(rs.getInt("id_curso"));
+                tarea.setCursoNombre(rs.getString("curso_nombre"));
                 tareas.add(tarea);
             }
             
         } catch (SQLException e) {
-            System.out.println("Error al obtener tareas del curso - " + e.getMessage());
+            logger.severe("Error al obtener tareas del curso - " + e.getMessage());
         } finally {
             try {
                 if (rs != null) rs.close();
                 if (ps != null) ps.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.out.println("Error al cerrar conexiones - " + e.getMessage());
+                logger.warning("Error al cerrar conexiones - " + e.getMessage());
             }
         }
         
@@ -249,57 +262,152 @@ public class TareaDAO implements CRUD<Tarea> {
     
     /**
      * Obtiene todas las tareas de un profesor según su ID, uniéndose con cursos
-     */    public List<Tarea> getTareasPorProfesor(int idProfesor) {
-        System.out.println("Buscando tareas para profesor ID: " + idProfesor);
+     */
+    public List<Tarea> getTareasPorProfesor(int idProfesor) {
+        logger.info("============= INICIANDO BÚSQUEDA DE TAREAS =============");
+        logger.info("Buscando tareas para profesor ID: " + idProfesor);
         
-        // Consulta que une tareas con cursos para obtener el nombre del curso
-        String sql = "SELECT t.*, c.nombre as curso_nombre FROM tarea t " +
-                     "JOIN curso c ON t.id_curso = c.id_curso " +
-                     "WHERE c.idProfesor = ?";
+        // Consulta principal que devuelve todas las tareas de los cursos del profesor
+        String sql = "SELECT t.id_tarea, t.titulo, t.descripcion, " +
+                    "t.fecha_asignacion, t.fecha_entrega, " +
+                    "t.id_curso, c.nombre as curso_nombre " +
+                    "FROM tarea t " +
+                    "INNER JOIN curso c ON t.id_curso = c.id_curso " +
+                    "WHERE c.idProfesor = ? " +
+                    "ORDER BY t.fecha_entrega DESC";
         
         List<Tarea> tareas = new ArrayList<>();
         try {
             conn = conexion.crearConexion();
             if (conn == null) {
-                System.out.println("Error: No se pudo establecer conexión a la base de datos");
+                logger.severe("Error crítico: No se pudo establecer conexión a la base de datos");
                 return tareas;
             }
             
+            // Verificar los cursos asignados al profesor y registrar información de diagnóstico
+            String checkProfesorSql = "SELECT c.id_curso, c.nombre " +
+                                    "FROM curso c " +
+                                    "WHERE c.idProfesor = ?";
+            
+            try (PreparedStatement checkPs = conn.prepareStatement(checkProfesorSql)) {
+                checkPs.setInt(1, idProfesor);
+                try (ResultSet checkRs = checkPs.executeQuery()) {
+                    boolean tieneCursos = false;
+                    logger.info("Cursos del profesor ID " + idProfesor + ":");
+                    while (checkRs.next()) {
+                        tieneCursos = true;
+                        logger.info("  - Curso ID: " + checkRs.getInt("id_curso") + 
+                                    ", Nombre: " + checkRs.getString("nombre"));
+                    }
+                    
+                    if (!tieneCursos) {
+                        logger.warning("El profesor no tiene cursos asignados");
+                        return tareas;
+                    }
+                }
+            }
+              // Verificar si existen tareas en la base de datos
+            String checkTareasSql = "SELECT COUNT(*) as total_tareas FROM tarea";
+            try (PreparedStatement checkTareasPs = conn.prepareStatement(checkTareasSql)) {
+                try (ResultSet checkTareasRs = checkTareasPs.executeQuery()) {
+                    if (checkTareasRs.next()) {
+                        int totalTareas = checkTareasRs.getInt("total_tareas");
+                        logger.info("Total de tareas en la base de datos: " + totalTareas);
+                    }
+                }
+            }
+            
+            // Verificar las tareas específicas del profesor
+            String checkTareasProfesorSql = "SELECT t.id_tarea, t.titulo, c.nombre as curso_nombre " +
+                                          "FROM tarea t " +
+                                          "INNER JOIN curso c ON t.id_curso = c.id_curso " +
+                                          "WHERE c.idProfesor = ?";
+                                          
+            try (PreparedStatement checkTareasProfesorPs = conn.prepareStatement(checkTareasProfesorSql)) {
+                checkTareasProfesorPs.setInt(1, idProfesor);
+                try (ResultSet checkTareasProfesorRs = checkTareasProfesorPs.executeQuery()) {
+                    boolean tieneTareas = false;
+                    logger.info("Verificando tareas específicas del profesor ID " + idProfesor + ":");
+                    while (checkTareasProfesorRs.next()) {
+                        tieneTareas = true;
+                        logger.info("  - Tarea ID: " + checkTareasProfesorRs.getInt("id_tarea") + 
+                                    ", Título: " + checkTareasProfesorRs.getString("titulo") +
+                                    ", Curso: " + checkTareasProfesorRs.getString("curso_nombre"));
+                    }
+                    
+                    if (!tieneTareas) {
+                        logger.warning("No se encontraron tareas para los cursos del profesor");
+                    }
+                }
+            }
+              // Obtener las tareas
             ps = conn.prepareStatement(sql);
             ps.setInt(1, idProfesor);
-            System.out.println("Ejecutando consulta: " + sql.replace("?", String.valueOf(idProfesor)));
-            
+            logger.info("Ejecutando consulta: " + sql + " con parámetro idProfesor = " + idProfesor);
             rs = ps.executeQuery();
             int count = 0;
             
             while (rs.next()) {
                 count++;
                 Tarea tarea = new Tarea();
-                tarea.setId(rs.getInt("id_tarea"));
+                int idTarea = rs.getInt("id_tarea");
+                tarea.setId(idTarea);
                 tarea.setTitulo(rs.getString("titulo"));
                 tarea.setDescripcion(rs.getString("descripcion"));
-                tarea.setFecha_asignacion(rs.getDate("fecha_asignacion"));
-                tarea.setFecha_entrega(rs.getDate("fecha_entrega"));
-                tarea.setId_curso(rs.getInt("id_curso"));
+                tarea.setFechaAsignacion(rs.getTimestamp("fecha_asignacion"));
+                tarea.setFechaEntrega(rs.getTimestamp("fecha_entrega"));
+                tarea.setIdCurso(rs.getInt("id_curso"));
+                tarea.setCursoNombre(rs.getString("curso_nombre"));
                 
-                // Establecemos el nombre del curso de manera explícita
-                String nombreCurso = rs.getString("curso_nombre");
-                tarea.setCurso_nombre(nombreCurso != null ? nombreCurso : "Sin curso");
+                // Calcular el estado de la tarea
+                java.util.Date fechaEntrega = tarea.getFechaEntrega();
+                java.util.Date ahora = new java.util.Date();
+                
+                if (fechaEntrega == null) {
+                    tarea.setEstado("Pendiente");
+                } else if (fechaEntrega.before(ahora)) {
+                    tarea.setEstado("Vencida");
+                } else if (tarea.getFechaAsignacion() != null && tarea.getFechaAsignacion().after(ahora)) {
+                    tarea.setEstado("Programada");
+                } else {
+                    tarea.setEstado("Activa");
+                }
                 
                 tareas.add(tarea);
-                System.out.println("Tarea encontrada: ID=" + tarea.getId() + 
-                                  ", Título=" + tarea.getTitulo() + 
-                                  ", Curso=" + tarea.getCurso_nombre() + 
-                                  ", Fecha entrega=" + tarea.getFecha_entrega());
+                logger.info(String.format(
+                    "Tarea encontrada:\n" +
+                    " - ID: %d\n" +
+                    " - Título: %s\n" +
+                    " - Curso: %s\n" +
+                    " - Fecha Asignación: %s\n" +
+                    " - Fecha Entrega: %s\n" +
+                    " - Estado: %s",
+                    tarea.getId(),
+                    tarea.getTitulo(),
+                    tarea.getCursoNombre(),
+                    tarea.getFechaAsignacion(),
+                    tarea.getFechaEntrega(),
+                    tarea.getEstado()
+                ));
             }
             
-            System.out.println("Total de tareas encontradas para el profesor ID " + idProfesor + ": " + count);
+            logger.info("Total de tareas encontradas: " + count);
+            
         } catch (SQLException e) {
-            System.out.println("Error al obtener tareas por profesor - " + e.getMessage());
-            e.printStackTrace(); // Imprimir stack trace para tener más detalles
+            logger.severe("Error al obtener tareas por profesor: " + e.getMessage());
+            e.printStackTrace();
         } finally {
-            try { if (rs != null) rs.close(); if (ps != null) ps.close(); if (conn != null) conn.close(); } catch (SQLException ignored) {}
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (conn != null) conn.close();
+                logger.info("Conexiones cerradas correctamente");
+            } catch (SQLException e) {
+                logger.warning("Error al cerrar conexiones: " + e.getMessage());
+            }
         }
+        
+        logger.info("============= FIN BÚSQUEDA DE TAREAS =============");
         return tareas;
     }
     
@@ -322,14 +430,14 @@ public class TareaDAO implements CRUD<Tarea> {
             return resultado > 0;
             
         } catch (SQLException e) {
-            System.out.println("Error al asignar nota - " + e.getMessage());
+            logger.severe("Error al asignar nota - " + e.getMessage());
             return false;
         } finally {
             try {
                 if (ps != null) ps.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.out.println("Error al cerrar conexiones - " + e.getMessage());
+                logger.warning("Error al cerrar conexiones - " + e.getMessage());
             }
         }
     }

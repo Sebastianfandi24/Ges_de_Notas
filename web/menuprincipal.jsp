@@ -136,7 +136,11 @@
                   <a class="nav-link" href="${pageContext.request.contextPath}/profesor/cursos" target="contentFrame">
                     <i class="fas fa-circle"></i> ${act.nombre}
                   </a>
-                </c:when>
+                </c:when>            <c:when test="${userRol == 2 and fn:endsWith(act.enlace,'profesortareas.jsp')}">
+              <a class="nav-link" href="${pageContext.request.contextPath}/profesor/tareas" target="contentFrame">
+                <i class="fas fa-circle"></i> ${act.nombre}
+              </a>
+            </c:when>
                 <c:when test="${userRol == 1 and fn:endsWith(act.enlace,'estudiantecursos.jsp')}">
                   <a class="nav-link" href="${pageContext.request.contextPath}/estudiante/mis-cursos" target="contentFrame">
                     <i class="fas fa-circle"></i> ${act.nombre}

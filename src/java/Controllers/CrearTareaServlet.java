@@ -19,7 +19,9 @@ import java.util.logging.Logger;
 
 @WebServlet(name="CrearTareaServlet", urlPatterns = {"/profesor/tareas/crear"})
 public class CrearTareaServlet extends HttpServlet {
-    private static final Logger logger = Logger.getLogger(CrearTareaServlet.class.getName());    @Override
+    private static final Logger logger = Logger.getLogger(CrearTareaServlet.class.getName());
+    
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         // Instanciar DAO y formateador localmente
@@ -39,9 +41,9 @@ public class CrearTareaServlet extends HttpServlet {
             Tarea tarea = new Tarea();
             tarea.setTitulo(titulo);
             tarea.setDescripcion(descripcion);
-            tarea.setFecha_asignacion(new Date());
-            tarea.setFecha_entrega(fechaEntrega);
-            tarea.setId_curso(idCurso);
+            tarea.setFechaAsignacion(new Date());
+            tarea.setFechaEntrega(fechaEntrega);
+            tarea.setIdCurso(idCurso);
             int idTarea = tareaDAO.createAndReturnId(tarea);
             logger.info(String.format("Tarea creada con ID=%d", idTarea));
 
@@ -77,7 +79,7 @@ public class CrearTareaServlet extends HttpServlet {
             }
             response.sendRedirect(request.getContextPath() + "/profesor/tareas");
         } catch (Exception ex) {
-            logger.log(java.util.logging.Level.SEVERE, "Error en CrearTareaServlet", ex);
+            logger.severe("Error en CrearTareaServlet: " + ex.getMessage());
             throw new ServletException("Error creando tarea", ex);
         }
     }

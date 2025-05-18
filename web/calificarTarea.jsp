@@ -48,14 +48,13 @@
         <h4 class="card-title">${tarea.titulo}</h4>
         <p class="card-text">${tarea.descripcion}</p>
         <div class="row">
-          <div class="col-md-4">
-            <p><strong>Curso:</strong> ${tarea.curso_nombre}</p>
+          <div class="col-md-4">            <p><strong>Curso:</strong> ${tarea.cursoNombre}</p>
           </div>
           <div class="col-md-4">
-            <p><strong>Fecha Asignación:</strong> ${tarea.fecha_asignacion}</p>
+            <p><strong>Fecha Asignación:</strong> ${tarea.fechaAsignacion}</p>
           </div>
           <div class="col-md-4">
-            <p><strong>Fecha Entrega:</strong> ${tarea.fecha_entrega}</p>
+            <p><strong>Fecha Entrega:</strong> ${tarea.fechaEntrega}</p>
           </div>
         </div>
       </div>
@@ -78,18 +77,29 @@
                   <th>Nota</th>
                   <th>Comentario</th>
                 </tr>
-              </thead>
-              <tbody>
+              </thead>              <tbody>
                 <c:forEach var="estudiante" items="${estudiantes}">
                   <tr>
                     <td>${estudiante.nombre}</td>
                     <td style="width: 120px;">
+                      <c:set var="notaEncontrada" value="false" />
+                      <c:set var="valorNota" value="" />
+                      <c:set var="comentarioNota" value="" />
+                      
+                      <c:forEach var="nota" items="${notas}">
+                        <c:if test="${nota.idEstudiante == estudiante.id}">
+                          <c:set var="notaEncontrada" value="true" />
+                          <c:set var="valorNota" value="${nota.nota}" />
+                          <c:set var="comentarioNota" value="${nota.comentario}" />
+                        </c:if>
+                      </c:forEach>
+                      
                       <input type="number" class="form-control" name="nota_${estudiante.id}" 
-                             min="0" max="5" step="0.1" value="${nota.nota}">
+                             min="0" max="100" step="0.1" value="${valorNota}">
                     </td>
                     <td>
                       <textarea class="form-control" name="comentario_${estudiante.id}" 
-                                rows="1">${nota.comentario}</textarea>
+                                rows="1">${comentarioNota}</textarea>
                     </td>
                   </tr>
                 </c:forEach>

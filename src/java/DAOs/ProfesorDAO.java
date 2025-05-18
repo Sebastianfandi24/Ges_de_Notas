@@ -408,17 +408,39 @@ public class ProfesorDAO implements CRUD<Profesor> {
      * Obtiene el ID del profesor dado el ID de usuario.
      */
     public Integer getProfesorIdByUsuario(int idUsuario) {
+        LOGGER.info("[ProfesorDAO] Buscando id_profesor para usuario ID: " + idUsuario);
         String sql = "SELECT id_profesor FROM profesor WHERE idUsuario = ?";
         try (Connection conn = conexion.crearConexion();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            // Verificar primero si el usuario existe
+            String checkUserSql = "SELECT id_usu, nombre, id_rol FROM usuario WHERE id_usu = ?";
+            try (PreparedStatement checkPs = conn.prepareStatement(checkUserSql)) {
+                checkPs.setInt(1, idUsuario);
+                try (ResultSet checkRs = checkPs.executeQuery()) {
+                    if (checkRs.next()) {
+                        LOGGER.info("[ProfesorDAO] Usuario encontrado - ID: " + checkRs.getInt("id_usu") + 
+                                    ", Nombre: " + checkRs.getString("nombre") + 
+                                    ", Rol: " + checkRs.getInt("id_rol"));
+                    } else {
+                        LOGGER.warning("[ProfesorDAO] No se encontró usuario con ID: " + idUsuario);
+                        return null;
+                    }
+                }
+            }
+            
             ps.setInt(1, idUsuario);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getInt("id_profesor");
+                    int idProfesor = rs.getInt("id_profesor");
+                    LOGGER.info("[ProfesorDAO] Profesor encontrado con ID: " + idProfesor + " para usuario ID: " + idUsuario);
+                    return idProfesor;
+                } else {
+                    LOGGER.warning("[ProfesorDAO] No se encontró profesor para usuario ID: " + idUsuario);
                 }
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error al obtener id_profesor para usuario " + idUsuario, e);
+            LOGGER.log(Level.SEVERE, "[ProfesorDAO] Error al obtener id_profesor para usuario " + idUsuario, e);
         }
         return null;
     }
