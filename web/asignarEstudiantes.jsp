@@ -11,12 +11,18 @@
 </head>
 <body>
     <div class="container py-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
+        <div class="card">            <div class="card-header bg-primary text-white">
                 <h4 class="m-0">Asignar Estudiantes al Curso</h4>
             </div>
             <div class="card-body">
-                <form action="${pageContext.request.contextPath}/profesor/cursos/asignar" method="post">
+                <c:if test="${not empty error}">
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Error:</strong> ${error}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </c:if>
+                
+                <form action="${pageContext.request.contextPath}/profesor/cursos/asignar" method="post" id="asignarForm">
                     <input type="hidden" name="cursoId" value="${cursoId}">
                     
                     <div class="table-responsive">
@@ -60,11 +66,9 @@
                                 </c:forEach>
                             </tbody>
                         </table>
-                    </div>
-
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-plus-circle me-2"></i>Asignar Seleccionados
+                    </div>                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="bi bi-plus-circle me-2"></i>Guardar Cambios
                         </button>
                         <a href="${pageContext.request.contextPath}/profesor/cursos" 
                            class="btn btn-secondary ms-2">Cancelar</a>
@@ -75,5 +79,45 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Contador de checkboxes seleccionados
+        const checkboxes = document.querySelectorAll('input[name="estudiantes"]');
+        const submitBtn = document.getElementById('submitBtn');
+        const asignarForm = document.getElementById('asignarForm');
+        let checkedCount = document.querySelectorAll('input[name="estudiantes"]:checked').length;
+        
+        // Actualizar contador y cambiar texto del botón
+        function updateButtonState() {
+            if (checkedCount === 0) {
+                submitBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>Desasignar Todos';
+                submitBtn.classList.replace('btn-primary', 'btn-danger');
+            } else {
+                submitBtn.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Guardar Cambios';
+                submitBtn.classList.replace('btn-danger', 'btn-primary');
+            }
+        }
+        
+        // Inicializar estado del botón
+        updateButtonState();
+        
+        // Actualizar cuando cambian las selecciones
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                checkedCount = document.querySelectorAll('input[name="estudiantes"]:checked').length;
+                updateButtonState();
+            });
+        });
+        
+        // Confirmar si no hay estudiantes seleccionados
+        asignarForm.addEventListener('submit', function(e) {
+            if (checkedCount === 0) {
+                if (!confirm('¿Está seguro que desea desasignar a todos los estudiantes de este curso?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    });
+    </script>
 </body>
 </html>

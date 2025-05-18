@@ -238,4 +238,21 @@ public class ProfesorTareasServlet extends HttpServlet {
         diagnostico.put("timestamp", new Date());
         request.setAttribute("diagnostico", diagnostico);
     }
+    
+    /**
+     * Maneja las solicitudes POST a /profesor/tareas
+     * Redirige la solicitud a CrearTareaServlet
+     */
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        logger.info("[ProfesorTareasServlet] Recibida solicitud POST - Redirigiendo a CrearTareaServlet");
+        try {
+            // Redireccionar a CrearTareaServlet
+            request.getRequestDispatcher("/profesor/tareas/crear").forward(request, response);
+        } catch (Exception e) {
+            logger.severe("[ProfesorTareasServlet] Error redirigiendo solicitud POST: " + e.getMessage());
+            throw new ServletException("Error procesando formulario de creación de tarea", e);
+        }
+    }
 }

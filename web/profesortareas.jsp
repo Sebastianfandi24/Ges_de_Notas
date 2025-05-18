@@ -185,8 +185,7 @@
         <div class="modal-header">
           <h5 class="modal-title" id="newTaskModalLabel">Nueva Tarea</h5>          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body">
-          <form id="newTaskForm" action="${pageContext.request.contextPath}/profesor/tareas" method="post">
+        <div class="modal-body">          <form id="newTaskForm" action="${pageContext.request.contextPath}/profesor/tareas/crear" method="post">
             <div class="mb-3">
               <label for="taskTitle" class="form-label">Título de la tarea</label>
               <input type="text" class="form-control" id="taskTitle" name="titulo" required>

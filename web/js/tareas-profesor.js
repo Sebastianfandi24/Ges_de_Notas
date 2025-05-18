@@ -136,11 +136,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
-
   // Configurar formulario de nueva tarea
   const newTaskForm = document.getElementById('newTaskForm');
   if (newTaskForm) {
-    newTaskForm.action = `${window.contextPath}/profesor/tareas`;
+    newTaskForm.action = `${window.contextPath}/profesor/tareas/crear`;
   }
     // Configurar formulario de editar tarea
   const editTaskForm = document.getElementById('editTaskForm');

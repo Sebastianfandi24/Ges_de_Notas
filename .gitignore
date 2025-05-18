@@ -42,3 +42,4 @@ nbdist/
 *.tmp
 *.bak
 *~
+nbproject/project.properties
