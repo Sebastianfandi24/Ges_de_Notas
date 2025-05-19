@@ -1,4 +1,80 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@page import="java.sql.*" %>
+<%
+    if (session == null || session.getAttribute("userId") == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp");
+        return;
+    }
+    Object idEstudianteObj = session.getAttribute("id_estudiante");
+    Object userIdObj = session.getAttribute("userId");
+    Integer idEstudiante = null;
+    if (idEstudianteObj != null) {
+        idEstudiante = Integer.parseInt(idEstudianteObj.toString());
+    } else if (userIdObj != null) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/sistema_academico", "root", "");
+            ps = conn.prepareStatement("SELECT id_estudiante FROM estudiante WHERE idUsuario = ?");
+            ps.setInt(1, Integer.parseInt(userIdObj.toString()));
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                idEstudiante = rs.getInt("id_estudiante");
+                session.setAttribute("id_estudiante", idEstudiante);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            if (rs != null) try { rs.close(); } catch (Exception e) {}
+            if (ps != null) try { ps.close(); } catch (Exception e) {}
+            if (conn != null) try { conn.close(); } catch (Exception e) {}
+        }
+    }
+
+    // Obtener tareas asignadas al estudiante
+    java.util.List<java.util.Map<String, Object>> tareas = new java.util.ArrayList<>();
+    if (idEstudiante != null) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/sistema_academico", "root", "");
+            String sql = "SELECT t.titulo, t.descripcion, t.fecha_entrega, c.nombre as curso_nombre, " +
+                         "nt.nota, nt.comentario, nt.fecha_evaluacion " +
+                         "FROM tarea t " +
+                         "INNER JOIN curso c ON t.id_curso = c.id_curso " +
+                         "INNER JOIN curso_estudiante ce ON ce.id_curso = c.id_curso " +
+                         "LEFT JOIN nota_tarea nt ON nt.id_tarea = t.id_tarea AND nt.id_estudiante = ? " +
+                         "WHERE ce.id_estudiante = ? " +
+                         "ORDER BY t.fecha_entrega DESC";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, idEstudiante);
+            ps.setInt(2, idEstudiante);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                java.util.Map<String, Object> tarea = new java.util.HashMap<>();
+                tarea.put("titulo", rs.getString("titulo"));
+                tarea.put("curso", rs.getString("curso_nombre"));
+                tarea.put("fecha_entrega", rs.getDate("fecha_entrega"));
+                tarea.put("nota", rs.getObject("nota"));
+                tarea.put("comentario", rs.getString("comentario"));
+                tarea.put("fecha_evaluacion", rs.getDate("fecha_evaluacion"));
+                // Estado: entregada si tiene nota, pendiente si no
+                tarea.put("estado", rs.getObject("nota") != null ? "Entregado" : "Pendiente");
+                tareas.add(tarea);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            if (rs != null) try { rs.close(); } catch (Exception e) {}
+            if (ps != null) try { ps.close(); } catch (Exception e) {}
+            if (conn != null) try { conn.close(); } catch (Exception e) {}
+        }
+    }
+%>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -46,7 +122,7 @@
       </div>
     </div>
 
-    <!-- Tabla estática -->
+    <!-- Tabla dinámica -->
     <div class="table-responsive table-wrapper">
       <table class="table align-middle mb-0">
         <thead>
@@ -60,57 +136,35 @@
           </tr>
         </thead>
         <tbody>
-          <!-- Pendientes -->
-          <tr>
-            <td>Ecuaciones Diferenciales</td>
-            <td>Matemáticas Avanzadas</td>
-            <td>25/04/2025</td>
-            <td>
-              <span class="badge bg-warning text-white badge-status">Pendiente</span>
-            </td>
-            <td>-</td>
-            <td>
-              <button class="btn btn-sm btn-primary">Entregar</button>
-            </td>
-          </tr>
-          <tr>
-            <td>Algoritmos de ordenamiento</td>
-            <td>Programación Java</td>
-            <td>27/04/2025</td>
-            <td>
-              <span class="badge bg-warning text-white badge-status">Pendiente</span>
-            </td>
-            <td>-</td>
-            <td>
-              <button class="btn btn-sm btn-primary">Entregar</button>
-            </td>
-          </tr>
-
-          <!-- Entregadas -->
-          <tr>
-            <td>Matrices y determinantes</td>
-            <td>Matemáticas Avanzadas</td>
-            <td>10/04/2025</td>
-            <td>
-              <span class="badge bg-success text-white badge-status">Entregado</span>
-            </td>
-            <td>8.5</td>
-            <td>
-              <button class="btn btn-sm btn-secondary">Ver detalles</button>
-            </td>
-          </tr>
-          <tr>
-            <td>Clases y objetos</td>
-            <td>Programación Java</td>
-            <td>05/04/2025</td>
-            <td>
-              <span class="badge bg-success text-white badge-status">Entregado</span>
-            </td>
-            <td>9.0</td>
-            <td>
-              <button class="btn btn-sm btn-secondary">Ver detalles</button>
-            </td>
-          </tr>
+          <% if (tareas.isEmpty()) { %>
+            <tr>
+              <td colspan="6" class="text-center">No tienes tareas asignadas.</td>
+            </tr>
+          <% } else {
+            for (java.util.Map<String, Object> tarea : tareas) { %>
+              <tr>
+                <td><%= tarea.get("titulo") %></td>
+                <td><%= tarea.get("curso") %></td>
+                <td><%= tarea.get("fecha_entrega") %></td>
+                <td>
+                  <% if ("Pendiente".equals(tarea.get("estado"))) { %>
+                    <span class="badge bg-warning text-white badge-status">Pendiente</span>
+                  <% } else { %>
+                    <span class="badge bg-success text-white badge-status">Entregado</span>
+                  <% } %>
+                </td>
+                <td>
+                  <%= tarea.get("nota") != null ? tarea.get("nota") : "-" %>
+                </td>
+                <td>
+                  <% if ("Pendiente".equals(tarea.get("estado"))) { %>
+                    <button class="btn btn-sm btn-primary">Entregar</button>
+                  <% } else { %>
+                    <button class="btn btn-sm btn-secondary">Ver detalles</button>
+                  <% } %>
+                </td>
+              </tr>
+          <% } } %>
         </tbody>
       </table>
     </div>

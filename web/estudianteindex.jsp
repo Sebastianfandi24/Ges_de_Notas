@@ -1,4 +1,97 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@page import="java.sql.*" %>
+<%
+    if (session == null || session.getAttribute("userId") == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp");
+        return;
+    }
+    Object idEstudianteObj = session.getAttribute("id_estudiante");
+    Object userIdObj = session.getAttribute("userId");
+    Integer idEstudiante = null;
+    if (idEstudianteObj != null) {
+        idEstudiante = Integer.parseInt(idEstudianteObj.toString());
+    } else if (userIdObj != null) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/sistema_academico", "root", "");
+            ps = conn.prepareStatement("SELECT id_estudiante FROM estudiante WHERE idUsuario = ?");
+            ps.setInt(1, Integer.parseInt(userIdObj.toString()));
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                idEstudiante = rs.getInt("id_estudiante");
+                session.setAttribute("id_estudiante", idEstudiante);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            if (rs != null) try { rs.close(); } catch (Exception e) {}
+            if (ps != null) try { ps.close(); } catch (Exception e) {}
+            if (conn != null) try { conn.close(); } catch (Exception e) {}
+        }
+    }
+
+    // Obtener cursos activos del estudiante
+    java.util.List<java.util.Map<String, Object>> cursos = new java.util.ArrayList<>();
+    int tareasPendientes = 0;
+    double promedio = 0.0;
+    int totalNotas = 0;
+    if (idEstudiante != null) {
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/sistema_academico", "root", "");
+            // Cursos activos
+            String sql = "SELECT c.*, u.nombre as profesor_nombre FROM curso c " +
+                         "INNER JOIN curso_estudiante ce ON c.id_curso = ce.id_curso " +
+                         "LEFT JOIN profesor p ON c.idProfesor = p.id_profesor " +
+                         "LEFT JOIN usuario u ON p.idUsuario = u.id_usu " +
+                         "WHERE ce.id_estudiante = ?";
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, idEstudiante);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                java.util.Map<String, Object> curso = new java.util.HashMap<>();
+                curso.put("nombre", rs.getString("nombre"));
+                curso.put("codigo", rs.getString("codigo"));
+                curso.put("profesor", rs.getString("profesor_nombre"));
+                curso.put("descripcion", rs.getString("descripcion"));
+                cursos.add(curso);
+            }
+            if (rs != null) rs.close();
+            if (ps != null) ps.close();
+            // Tareas pendientes y promedio
+            String sqlTareas = "SELECT nt.nota FROM tarea t " +
+                               "INNER JOIN curso_estudiante ce ON t.id_curso = ce.id_curso " +
+                               "LEFT JOIN nota_tarea nt ON nt.id_tarea = t.id_tarea AND nt.id_estudiante = ? " +
+                               "WHERE ce.id_estudiante = ?";
+            ps = conn.prepareStatement(sqlTareas);
+            ps.setInt(1, idEstudiante);
+            ps.setInt(2, idEstudiante);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                Double nota = (Double) rs.getObject("nota");
+                if (nota == null) {
+                    tareasPendientes++;
+                } else {
+                    promedio += nota;
+                    totalNotas++;
+                }
+            }
+            if (totalNotas > 0) promedio = promedio / totalNotas;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            if (rs != null) try { rs.close(); } catch (Exception e) {}
+            if (ps != null) try { ps.close(); } catch (Exception e) {}
+            if (conn != null) try { conn.close(); } catch (Exception e) {}
+        }
+    }
+%>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -56,7 +149,7 @@
         <div class="dashboard-card d-flex justify-content-between align-items-center">
           <div>
             <div class="card-title">Mis Cursos</div>
-            <div class="card-value">2</div>
+            <div class="card-value"><%= cursos.size() %></div>
           </div>
           <i class="bi bi-journal-text card-icon"></i>
         </div>
@@ -65,27 +158,9 @@
         <div class="dashboard-card d-flex justify-content-between align-items-center">
           <div>
             <div class="card-title">Tareas Pendientes</div>
-            <div class="card-value">3</div>
+            <div class="card-value"><%= tareasPendientes %></div>
           </div>
           <i class="bi bi-list-task card-icon"></i>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="dashboard-card d-flex justify-content-between align-items-center">
-          <div>
-            <div class="card-title">Promedio</div>
-            <div class="card-value">8.5</div>
-          </div>
-          <i class="bi bi-star card-icon"></i>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="dashboard-card d-flex justify-content-between align-items-center">
-          <div>
-            <div class="card-title">Actividades Próximas</div>
-            <div class="card-value">1</div>
-          </div>
-          <i class="bi bi-calendar-event card-icon"></i>
         </div>
       </div>
     </div>
@@ -104,32 +179,26 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>Matemáticas Avanzadas</td>
-              <td>Prof. Juan Pérez</td>
-              <td>
-                <div class="progress" style="height: 10px;">
-                  <div class="progress-bar bg-success" role="progressbar" style="width: 75%;"
-                       aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-              </td>
-              <td>
-                <button class="btn btn-sm btn-primary">Ver curso</button>
-              </td>
-            </tr>
-            <tr>
-              <td>Programación Java</td>
-              <td>Prof. Ana García</td>
-              <td>
-                <div class="progress" style="height: 10px;">
-                  <div class="progress-bar bg-warning" role="progressbar" style="width: 45%;"
-                       aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-              </td>
-              <td>
-                <button class="btn btn-sm btn-primary">Ver curso</button>
-              </td>
-            </tr>
+            <% if (cursos.isEmpty()) { %>
+              <tr>
+                <td colspan="4" class="text-center">No tienes cursos activos.</td>
+              </tr>
+            <% } else {
+              for (java.util.Map<String, Object> curso : cursos) { %>
+              <tr>
+                <td><%= curso.get("nombre") %></td>
+                <td><%= curso.get("profesor") != null ? curso.get("profesor") : "Sin asignar" %></td>
+                <td>
+                  <div class="progress" style="height: 10px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: 100%;"
+                         aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                </td>
+                <td>
+                  <a href="estudiantetareas.jsp?curso=<%= curso.get("codigo") %>" class="btn btn-sm btn-primary">Ver curso</a>
+                </td>
+              </tr>
+            <% } } %>
           </tbody>
         </table>
       </div>
