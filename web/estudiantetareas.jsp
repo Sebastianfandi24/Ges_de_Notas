@@ -1,80 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@page import="java.sql.*" %>
-<%
-    if (session == null || session.getAttribute("userId") == null) {
-        response.sendRedirect(request.getContextPath() + "/login.jsp");
-        return;
-    }
-    Object idEstudianteObj = session.getAttribute("id_estudiante");
-    Object userIdObj = session.getAttribute("userId");
-    Integer idEstudiante = null;
-    if (idEstudianteObj != null) {
-        idEstudiante = Integer.parseInt(idEstudianteObj.toString());
-    } else if (userIdObj != null) {
-        Connection conn = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/sistema_academico", "root", "");
-            ps = conn.prepareStatement("SELECT id_estudiante FROM estudiante WHERE idUsuario = ?");
-            ps.setInt(1, Integer.parseInt(userIdObj.toString()));
-            rs = ps.executeQuery();
-            if (rs.next()) {
-                idEstudiante = rs.getInt("id_estudiante");
-                session.setAttribute("id_estudiante", idEstudiante);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            if (rs != null) try { rs.close(); } catch (Exception e) {}
-            if (ps != null) try { ps.close(); } catch (Exception e) {}
-            if (conn != null) try { conn.close(); } catch (Exception e) {}
-        }
-    }
-
-    // Obtener tareas asignadas al estudiante
-    java.util.List<java.util.Map<String, Object>> tareas = new java.util.ArrayList<>();
-    if (idEstudiante != null) {
-        Connection conn = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/sistema_academico", "root", "");
-            String sql = "SELECT t.titulo, t.descripcion, t.fecha_entrega, c.nombre as curso_nombre, " +
-                         "nt.nota, nt.comentario, nt.fecha_evaluacion " +
-                         "FROM tarea t " +
-                         "INNER JOIN curso c ON t.id_curso = c.id_curso " +
-                         "INNER JOIN curso_estudiante ce ON ce.id_curso = c.id_curso " +
-                         "LEFT JOIN nota_tarea nt ON nt.id_tarea = t.id_tarea AND nt.id_estudiante = ? " +
-                         "WHERE ce.id_estudiante = ? " +
-                         "ORDER BY t.fecha_entrega DESC";
-            ps = conn.prepareStatement(sql);
-            ps.setInt(1, idEstudiante);
-            ps.setInt(2, idEstudiante);
-            rs = ps.executeQuery();
-            while (rs.next()) {
-                java.util.Map<String, Object> tarea = new java.util.HashMap<>();
-                tarea.put("titulo", rs.getString("titulo"));
-                tarea.put("curso", rs.getString("curso_nombre"));
-                tarea.put("fecha_entrega", rs.getDate("fecha_entrega"));
-                tarea.put("nota", rs.getObject("nota"));
-                tarea.put("comentario", rs.getString("comentario"));
-                tarea.put("fecha_evaluacion", rs.getDate("fecha_evaluacion"));
-                // Estado: entregada si tiene nota, pendiente si no
-                tarea.put("estado", rs.getObject("nota") != null ? "Entregado" : "Pendiente");
-                tareas.add(tarea);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            if (rs != null) try { rs.close(); } catch (Exception e) {}
-            if (ps != null) try { ps.close(); } catch (Exception e) {}
-            if (conn != null) try { conn.close(); } catch (Exception e) {}
-        }
-    }
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -106,20 +32,21 @@
 <body class="bg-light">
   <div class="container-fluid py-4">
     <!-- Encabezado con título + filtros -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="m-0">Mis Tareas</h2>
-      <div class="d-flex gap-2">
-        <select class="form-select form-select-sm" style="width:auto;">
-          <option selected>Todas las tareas</option>
-          <option>Pendientes</option>
-          <option>Entregadas</option>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+      <h2 class="mb-3 mb-md-0">Mis Tareas</h2>
+      <form action="${pageContext.request.contextPath}/estudiante/tareas" method="GET" class="d-flex flex-column flex-md-row gap-2">        <select class="form-select form-select-sm" style="width:auto;" name="estado" id="estadoFilter">
+          <option value="Todos" ${estadoFiltro == 'Todos' ? 'selected' : ''}>Todas las tareas</option>
+          <option value="Pendiente" ${estadoFiltro == 'Pendiente' ? 'selected' : ''}>Pendientes</option>
+          <option value="En revisión" ${estadoFiltro == 'En revisión' ? 'selected' : ''}>En revisión</option>
+          <option value="Calificado" ${estadoFiltro == 'Calificado' ? 'selected' : ''}>Calificadas</option>
         </select>
-        <select class="form-select form-select-sm" style="width:auto;">
-          <option selected>Todos los cursos</option>
-          <option>Matemáticas Avanzadas</option>
-          <option>Programación Java</option>
+        <select class="form-select form-select-sm" style="width:auto;" name="curso" id="cursoFilter">          <option value="todos" ${cursoFiltro == 'todos' || empty cursoFiltro ? 'selected' : ''}>Todos los cursos</option>
+          <c:forEach var="curso" items="${cursos}">
+            <option value="${curso.id}" ${cursoFiltro eq curso.id.toString() ? 'selected' : ''}>${curso.nombre}</option>
+          </c:forEach>
         </select>
-      </div>
+        <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+      </form>
     </div>
 
     <!-- Tabla dinámica -->
@@ -136,41 +63,182 @@
           </tr>
         </thead>
         <tbody>
-          <% if (tareas.isEmpty()) { %>
-            <tr>
-              <td colspan="6" class="text-center">No tienes tareas asignadas.</td>
-            </tr>
-          <% } else {
-            for (java.util.Map<String, Object> tarea : tareas) { %>
+          <c:choose>
+            <c:when test="${empty tareas}">
               <tr>
-                <td><%= tarea.get("titulo") %></td>
-                <td><%= tarea.get("curso") %></td>
-                <td><%= tarea.get("fecha_entrega") %></td>
-                <td>
-                  <% if ("Pendiente".equals(tarea.get("estado"))) { %>
-                    <span class="badge bg-warning text-white badge-status">Pendiente</span>
-                  <% } else { %>
-                    <span class="badge bg-success text-white badge-status">Entregado</span>
-                  <% } %>
-                </td>
-                <td>
-                  <%= tarea.get("nota") != null ? tarea.get("nota") : "-" %>
-                </td>
-                <td>
-                  <% if ("Pendiente".equals(tarea.get("estado"))) { %>
-                    <button class="btn btn-sm btn-primary">Entregar</button>
-                  <% } else { %>
-                    <button class="btn btn-sm btn-secondary">Ver detalles</button>
-                  <% } %>
-                </td>
+                <td colspan="6" class="text-center">No tienes tareas asignadas.</td>
               </tr>
-          <% } } %>
+            </c:when>
+            <c:otherwise>
+              <c:forEach var="tarea" items="${tareas}">
+                <tr>
+                  <td>${tarea.titulo}</td>
+                  <td>${tarea.curso}</td>
+                  <td><fmt:formatDate value="${tarea.fecha_entrega}" pattern="dd/MM/yyyy" /></td>                  <td>
+                    <c:choose>
+                      <c:when test="${tarea.estado == 'Pendiente'}">
+                        <span class="badge bg-warning text-white badge-status">Pendiente</span>
+                      </c:when>
+                      <c:when test="${tarea.estado == 'En revisión'}">
+                        <span class="badge bg-info text-white badge-status">En revisión</span>
+                      </c:when>
+                      <c:otherwise>
+                        <span class="badge bg-success text-white badge-status">Calificado</span>
+                      </c:otherwise>
+                    </c:choose>
+                  </td>
+                  <td>
+                    ${tarea.nota != null ? tarea.nota : "-"}
+                  </td>
+                  <td>
+                    <c:choose>
+                      <c:when test="${tarea.estado == 'Pendiente'}">
+                        <button class="btn btn-sm btn-primary" onclick="mostrarModalEntrega('${tarea.id}', '${tarea.titulo}')">Entregar</button>
+                      </c:when>
+                      <c:when test="${tarea.estado == 'En revisión'}">
+                        <button class="btn btn-sm btn-warning" disabled>En revisión</button>
+                      </c:when>
+                      <c:otherwise>
+                        <button class="btn btn-sm btn-secondary" onclick="mostrarDetalles('${tarea.id}', '${tarea.titulo}', '${tarea.nota}', '${tarea.comentario}')">Ver detalles</button>
+                      </c:otherwise>
+                    </c:choose>
+                  </td>
+                </tr>
+              </c:forEach>
+            </c:otherwise>
+          </c:choose>
         </tbody>
       </table>
     </div>
   </div>
 
+  <!-- Modal para entrega de tarea -->
+  <div class="modal fade" id="modalEntrega" tabindex="-1" aria-labelledby="modalEntregaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEntregaLabel">Entregar Tarea</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formEntrega">
+            <input type="hidden" id="tareaId" name="tareaId">
+            <div class="mb-3">
+              <label for="tareaTitulo" class="form-label">Tarea a entregar:</label>
+              <span id="tareaTitulo" class="fw-bold"></span>
+            </div>            <div class="mb-3">
+              <label for="comentarios" class="form-label">Comentarios</label>
+              <textarea class="form-control" id="comentarios" name="comentarios" rows="3"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="entregarTarea()">Entregar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para ver detalles de tarea entregada -->
+  <div class="modal fade" id="modalDetalles" tabindex="-1" aria-labelledby="modalDetallesLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalDetallesLabel">Detalles de la Tarea</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <h6 id="detalleTitulo" class="fw-bold mb-3">Título de la tarea</h6>
+          <div class="mb-3">
+            <div class="fw-bold">Calificación:</div>
+            <span id="detalleNota"></span>
+          </div>
+          <div class="mb-3">
+            <div class="fw-bold">Comentarios del profesor:</div>
+            <p id="detalleComentario" class="border rounded p-2 bg-light"></p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap Bundle JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Inicializar modales
+    let modalEntrega = null;
+    let modalDetalles = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      modalEntrega = new bootstrap.Modal(document.getElementById('modalEntrega'));
+      modalDetalles = new bootstrap.Modal(document.getElementById('modalDetalles'));
+      
+      // Habilitar filtrado AJAX si fuera necesario
+      document.querySelectorAll('#estadoFilter, #cursoFilter').forEach(select => {
+        select.addEventListener('change', function() {
+          // Si se desea filtrar con AJAX en vez de recargar la página
+          // document.querySelector('form').submit();
+        });
+      });
+    });
+    
+    function mostrarModalEntrega(tareaId, titulo) {
+      document.getElementById('tareaId').value = tareaId;
+      document.getElementById('tareaTitulo').textContent = titulo;
+      modalEntrega.show();
+    }
+    
+    function mostrarDetalles(tareaId, titulo, nota, comentario) {
+      document.getElementById('detalleTitulo').textContent = titulo;
+      document.getElementById('detalleNota').textContent = nota;
+      document.getElementById('detalleComentario').textContent = comentario || 'Sin comentarios';
+      modalDetalles.show();
+    }    function entregarTarea() {
+      const tareaId = document.getElementById('tareaId').value;
+      // Simplificando - no requerimos comentarios obligatorios
+      const comentarios = "Entregado";
+      
+      console.log("Enviando entrega: tareaId=" + tareaId + ", comentarios=" + comentarios);
+      
+      // Crear objeto FormData para enviar datos
+      const formData = new FormData();
+      formData.append('tareaId', tareaId);
+      formData.append('comentarios', comentarios);
+      
+      // Enviar la entrega al servidor usando URLSearchParams en lugar de FormData
+      // para garantizar compatibilidad con todos los servidores
+      fetch('${pageContext.request.contextPath}/estudiante/api/entregarTarea', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          'tareaId': tareaId,
+          'comentarios': comentarios
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          modalEntrega.hide();
+          // Mostrar mensaje de éxito y actualizar la página
+          alert('Tarea entregada correctamente');
+          window.location.reload();
+        } else {
+          alert('Error: ' + (data.error || 'No se pudo entregar la tarea'));
+          console.error("Error en respuesta:", data);
+        }
+      })
+      .catch(error => {
+        console.error('Error al entregar tarea:', error);
+        alert('Error al comunicarse con el servidor');
+      });
+    }
+  </script>
 </body>
 </html>

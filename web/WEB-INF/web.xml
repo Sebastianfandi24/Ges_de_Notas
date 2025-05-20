@@ -48,4 +48,14 @@
         <url-pattern>/profesor/tareas</url-pattern>
     </servlet-mapping>
     
+    <!-- Mapeo para EstudianteControllerServlet -->
+    <servlet>
+        <servlet-name>EstudianteControllerServlet</servlet-name>
+        <servlet-class>Controllers.EstudianteControllerServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>EstudianteControllerServlet</servlet-name>
+        <url-pattern>/estudiante/*</url-pattern>
+    </servlet-mapping>
+    
 </web-app>

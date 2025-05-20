@@ -1,73 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-<%@page import="java.sql.*" %>
-<%
-    if (session == null || session.getAttribute("userId") == null) {
-        response.sendRedirect(request.getContextPath() + "/login.jsp");
-        return;
-    }
-    Object idEstudianteObj = session.getAttribute("id_estudiante");
-    Object userIdObj = session.getAttribute("userId");
-    Integer idEstudiante = null;
-    if (idEstudianteObj != null) {
-        idEstudiante = Integer.parseInt(idEstudianteObj.toString());
-    } else if (userIdObj != null) {
-        // Buscar id_estudiante por userId en la base de datos
-        Connection conn = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/sistema_academico", "root", "");
-            ps = conn.prepareStatement("SELECT id_estudiante FROM estudiante WHERE idUsuario = ?");
-            ps.setInt(1, Integer.parseInt(userIdObj.toString()));
-            rs = ps.executeQuery();
-            if (rs.next()) {
-                idEstudiante = rs.getInt("id_estudiante");
-                session.setAttribute("id_estudiante", idEstudiante); // Guardar en sesión para siguientes usos
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            if (rs != null) try { rs.close(); } catch (Exception e) {}
-            if (ps != null) try { ps.close(); } catch (Exception e) {}
-            if (conn != null) try { conn.close(); } catch (Exception e) {}
-        }
-    }
-
-    // Obtener cursos del estudiante
-    java.util.List<java.util.Map<String, Object>> cursos = new java.util.ArrayList<>();
-    if (idEstudiante != null) {
-        Connection conn = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/sistema_academico", "root", "");
-            String sql = "SELECT c.*, u.nombre as profesor_nombre FROM curso c " +
-                         "INNER JOIN curso_estudiante ce ON c.id_curso = ce.id_curso " +
-                         "LEFT JOIN profesor p ON c.idProfesor = p.id_profesor " +
-                         "LEFT JOIN usuario u ON p.idUsuario = u.id_usu " +
-                         "WHERE ce.id_estudiante = ?";
-            ps = conn.prepareStatement(sql);
-            ps.setInt(1, idEstudiante);
-            rs = ps.executeQuery();
-            while (rs.next()) {
-                java.util.Map<String, Object> curso = new java.util.HashMap<>();
-                curso.put("nombre", rs.getString("nombre"));
-                curso.put("codigo", rs.getString("codigo"));
-                curso.put("profesor", rs.getString("profesor_nombre"));
-                curso.put("descripcion", rs.getString("descripcion"));
-                cursos.add(curso);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        } finally {
-            if (rs != null) try { rs.close(); } catch (Exception e) {}
-            if (ps != null) try { ps.close(); } catch (Exception e) {}
-            if (conn != null) try { conn.close(); } catch (Exception e) {}
-        }
-    }
-%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -119,30 +52,75 @@
   <div class="container py-4">
     <h2 class="mb-1">Mis Cursos</h2>
     <p class="text-muted mb-4">Lista de cursos en los que estás matriculado</p>
-    <div class="row">
-      <% if (cursos.isEmpty()) { %>
-        <div class="col-12">
-          <div class="alert alert-info">No tienes cursos asignados actualmente.</div>
+    
+    <c:if test="${not empty cursoSeleccionado}">
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h4>${cursoSeleccionado.nombre}</h4>
         </div>
-      <% } else {
-        for (java.util.Map<String, Object> curso : cursos) { %>
-        <div class="col-md-6">
-          <div class="course-card">
-            <div class="course-card-header">
-              <%= curso.get("nombre") %>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h5>Información del Curso</h5>
+              <p><strong>Código:</strong> ${cursoSeleccionado.codigo}</p>
+              <p><strong>Profesor:</strong> ${cursoSeleccionado.profesor != null ? cursoSeleccionado.profesor : 'Sin asignar'}</p>
+              <p><strong>Descripción:</strong> ${cursoSeleccionado.descripcion}</p>
             </div>
-            <div class="course-card-body">
-              <p><strong>Profesor:</strong> <%= curso.get("profesor") != null ? curso.get("profesor") : "Sin asignar" %></p>
-              <p><strong>Código:</strong> <%= curso.get("codigo") %></p>
-              <p><strong>Descripción:</strong> <%= curso.get("descripcion") %></p>
-            </div>
-            <div class="course-card-footer">
-              <a href="estudiantecursos.jsp?curso=<%= curso.get("codigo") %>" class="btn btn-primary">Ver detalles</a>
-              <a href="estudiantetareas.jsp?curso=<%= curso.get("codigo") %>" class="btn btn-outline-primary">Ver tareas</a>
+            <div class="col-md-6">
+              <h5>Tareas Asignadas</h5>
+              <c:choose>
+                <c:when test="${empty tareasCurso}">
+                  <p>No hay tareas asignadas para este curso.</p>
+                </c:when>
+                <c:otherwise>
+                  <ul class="list-group">
+                    <c:forEach var="tarea" items="${tareasCurso}">
+                      <li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${tarea.titulo}
+                        <span class="badge ${tarea.estado == 'Pendiente' ? 'bg-warning' : 'bg-success'}">${tarea.estado}</span>
+                      </li>
+                    </c:forEach>
+                  </ul>
+                </c:otherwise>
+              </c:choose>
             </div>
           </div>
         </div>
-      <% } } %>
+        <div class="card-footer">
+          <a href="${pageContext.request.contextPath}/estudiante/tareas?curso=${cursoSeleccionado.id}" class="btn btn-primary">Ver todas las tareas</a>
+          <a href="${pageContext.request.contextPath}/estudiante/cursos" class="btn btn-outline-secondary">Volver a todos los cursos</a>
+        </div>
+      </div>
+    </c:if>
+    
+    <div class="row">
+      <c:choose>
+        <c:when test="${empty cursos}">
+          <div class="col-12">
+            <div class="alert alert-info">No tienes cursos asignados actualmente.</div>
+          </div>
+        </c:when>
+        <c:otherwise>
+          <c:forEach var="curso" items="${cursos}">
+            <div class="col-md-6">
+              <div class="course-card">
+                <div class="course-card-header">
+                  ${curso.nombre}
+                </div>
+                <div class="course-card-body">
+                  <p><strong>Profesor:</strong> ${curso.profesor != null ? curso.profesor : 'Sin asignar'}</p>
+                  <p><strong>Código:</strong> ${curso.codigo}</p>
+                  <p><strong>Descripción:</strong> ${curso.descripcion}</p>
+                </div>
+                <div class="course-card-footer">
+                  <a href="${pageContext.request.contextPath}/estudiante/cursos?curso=${curso.id}" class="btn btn-primary">Ver detalles</a>
+                  <a href="${pageContext.request.contextPath}/estudiante/tareas?curso=${curso.id}" class="btn btn-outline-primary">Ver tareas</a>
+                </div>
+              </div>
+            </div>
+          </c:forEach>
+        </c:otherwise>
+      </c:choose>
     </div>
   </div>
   <!-- Bootstrap Bundle JS -->
