@@ -22,9 +22,16 @@ import java.io.IOException;
     "/profesor/*",
     "/profesor/cursos",
     "/profesor/cursos/*",
+    "/profesor/tareas",
+    "/profesor/tareas/*",
     "/estudiante",
     "/estudiante/*",
     "/estudiante/cursos",
+    "/estudiante/cursos/*",
+    "/estudiante/dashboard",
+    "/estudiante/dashboard/*",
+    "/estudiante/tareas",
+    "/estudiante/tareas/*",
     "/EstudiantesController",
     "/CursosController",
     "/CursosController/*",
@@ -39,12 +46,13 @@ public class SessionFilter implements Filter {
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain)
             throws IOException, ServletException {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
-        HttpServletResponse response = (HttpServletResponse) servletResponse;
-        
-        // Desactivar el caché para todas las respuestas filtradas
-        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        HttpServletResponse response = (HttpServletResponse) servletResponse;          // Headers de seguridad mejorados para evitar cache y navegación hacia atrás
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
         response.setHeader("Pragma", "no-cache");
-        response.setDateHeader("Expires", 0);
+        response.setDateHeader("Expires", -1);
+        response.setHeader("X-Frame-Options", "SAMEORIGIN");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("X-XSS-Protection", "1; mode=block");
         
         HttpSession session = request.getSession(false);
         

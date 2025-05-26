@@ -164,8 +164,7 @@
               </c:choose>
             </c:forEach>
           </nav>
-        </div>
-        <a href="${pageContext.request.contextPath}/login?action=logout" class="btn btn-logout mt-4">
+        </div>        <a href="javascript:void(0);" onclick="logoutSeguro()" class="btn btn-logout mt-4">
           <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
         </a>
       </div>
@@ -187,5 +186,127 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // ==================== BLOQUEO DE NAVEGACIÓN HACIA ATRÁS ====================
+    
+    // Variables de control
+    let sessionActive = true;
+    let logoutInProgress = false;
+    
+    // Función para agregar una entrada temporal al historial
+    function preventBackNavigation() {
+      // Agregamos una entrada al historial para interceptar el evento popstate
+      history.pushState(null, null, location.href);
+    }
+    
+    // Función para manejar el evento popstate (botón atrás)
+    function handlePopState(event) {
+      if (sessionActive && !logoutInProgress) {
+        // Bloquear navegación hacia atrás
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // Restaurar la entrada en el historial
+        preventBackNavigation();
+        
+        // Mostrar mensaje al usuario
+        if (confirm('¿Estás seguro de que quieres salir del sistema? Se cerrará tu sesión actual.')) {
+          logoutSeguro();
+        }
+        
+        return false;
+      }
+    }
+    
+    // Función para cerrar sesión de forma segura
+    function logoutSeguro() {
+      if (logoutInProgress) return; // Evitar múltiples llamadas
+      
+      logoutInProgress = true;
+      sessionActive = false;
+      
+      // Limpiar el historial y redirigir usando location.replace
+      // Esto evita que el usuario pueda volver atrás después del logout
+      location.replace('${pageContext.request.contextPath}/login?action=logout');
+    }
+    
+    // Función para verificar el estado de la sesión (opcional)
+    function verificarSesion() {
+      if (!sessionActive) return;
+      
+      fetch('${pageContext.request.contextPath}/sessioncheck', {
+        method: 'GET',
+        credentials: 'same-origin'
+      })
+      .then(response => {
+        if (response.status === 401 || response.status === 403) {
+          // Sesión expirada
+          sessionActive = false;
+          alert('Tu sesión ha expirado. Serás redirigido al login.');
+          location.replace('${pageContext.request.contextPath}/login.jsp');
+        }
+      })
+      .catch(error => {
+        console.warn('Error verificando sesión:', error);
+      });
+    }
+    
+    // Manejar el evento beforeunload para advertir al usuario
+    function handleBeforeUnload(event) {
+      if (sessionActive && !logoutInProgress) {
+        const message = '¿Estás seguro de que quieres salir? Se perderán los cambios no guardados.';
+        event.returnValue = message;
+        return message;
+      }
+    }
+    
+    // ==================== INICIALIZACIÓN ====================
+    
+    // Inicializar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+      // Agregar entrada inicial al historial
+      preventBackNavigation();
+      
+      // Configurar event listeners
+      window.addEventListener('popstate', handlePopState);
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      
+      // Verificación periódica de sesión cada 5 minutos (opcional)
+      setInterval(verificarSesion, 5 * 60 * 1000);
+      
+      console.log('Sistema de bloqueo de navegación activado');
+    });
+    
+    // Limpiar event listeners cuando se vaya a cerrar la página
+    window.addEventListener('beforeunload', function() {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    });
+    
+    // ==================== MANEJO DEL IFRAME ====================
+    
+    // Función para sincronizar el historial del iframe con la ventana principal
+    function syncIframeHistory() {
+      try {
+        const iframe = document.querySelector('iframe[name="contentFrame"]');
+        if (iframe && iframe.contentWindow) {
+          // Agregar listener al iframe para detectar cambios de navegación
+          iframe.contentWindow.addEventListener('beforeunload', function() {
+            if (sessionActive && !logoutInProgress) {
+              preventBackNavigation();
+            }
+          });
+        }
+      } catch (e) {
+        // Ignorar errores de cross-origin
+        console.log('No se puede acceder al contenido del iframe (cross-origin)');
+      }
+    }
+    
+    // Sincronizar cuando el iframe se cargue
+    window.addEventListener('load', function() {
+      setTimeout(syncIframeHistory, 1000);
+    });
+  </script>
 </body>
 </html>
